@@ -9,30 +9,8 @@ let currentNotePinned = false;
 
 // ==================== DARK MODE ====================
 function initDarkMode() {
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const darkModeIcon = document.getElementById('darkModeIcon');
-    const lightModeIcon = document.getElementById('lightModeIcon');
-
-    // Check for saved preference or default to light mode
-    const isDark = localStorage.getItem('darkMode') === 'true';
-    if (isDark) {
-        document.documentElement.classList.add('dark');
-        darkModeIcon.classList.remove('hidden');
-        lightModeIcon.classList.add('hidden');
-    }
-
-    darkModeToggle.addEventListener('click', () => {
-        const isDarkMode = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('darkMode', isDarkMode);
-
-        if (isDarkMode) {
-            darkModeIcon.classList.remove('hidden');
-            lightModeIcon.classList.add('hidden');
-        } else {
-            darkModeIcon.classList.add('hidden');
-            lightModeIcon.classList.remove('hidden');
-        }
-    });
+    // Force dark mode as default
+    document.documentElement.classList.add('dark');
 }
 
 // ==================== TOAST NOTIFICATIONS ====================
