@@ -1,12 +1,11 @@
 # AI-Enhanced Notes Application
 
-A smart note-taking web application with AI-powered organization, automatic to-do generation, and dark mode interface. Built with Spring Boot backend and modern JavaScript frontend.
+A smart note-taking web application with AI-powered organization, automatic to-do generation. Built with Spring Boot backend and modern JavaScript frontend.
 
 ## Project Information
 
 - **Course:** CS 5800 - Software Engineering
 - **Institution:** Cal Poly Pomona
-- **Project:** Full-stack implementation of Object-Oriented Analysis & Design (OOA/OOD)
 
 ## Features
 
@@ -33,13 +32,8 @@ A smart note-taking web application with AI-powered organization, automatic to-d
 
 ### AI Integration
 - **OpenAI API** (optional) for advanced features
-- **Fallback keyword-based logic** works without API key
 
 ## Installation & Setup
-
-### Prerequisites
-- Java 17 or higher ([Download here](https://www.oracle.com/java/technologies/downloads/))
-- Git
 
 ### Quick Start
 
@@ -71,11 +65,11 @@ openai.api.key=YOUR_API_KEY_HERE
 http://localhost:8000
 ```
 
-The app will start on port 8000. First run downloads dependencies (2-3 minutes).
+The app will start on port 8000. First run downloads dependencies.
 
 ## Design Patterns
 
-This project implements two **Gang of Four (GoF)** design patterns:
+This project implements two design patterns:
 
 ### 1. Decorator Pattern (Structural)
 
@@ -104,10 +98,6 @@ NoteEnrichment sentimentEnrichment = new SentimentEnrichmentDecorator(enrichedNo
 enrichedNote = sentimentEnrichment.enrich();
 ```
 
-**Benefits:**
-- ✅ Open/Closed Principle - Add new enrichments without modifying existing code
-- ✅ Single Responsibility - Each decorator has one specific task
-- ✅ Flexibility - Stack decorators in any order or combination
 
 ---
 
@@ -141,19 +131,3 @@ switch (reminder.getChannel()) {
 mediator.sendNotification(reminder);
 ```
 
-**Benefits:**
-- ✅ Reduced Coupling - Channels don't know about each other
-- ✅ Open/Closed Principle - Add new channels without modifying scheduler
-- ✅ Single Source of Truth - All routing logic centralized
-- ✅ Scalability - Easy to add broadcast and multi-channel features
-
----
-
-## Additional Resources
-
-- **Database Console:** `http://localhost:8000/h2-console` (JDBC URL: `jdbc:h2:file:./data/notesapp`)
-- **API Base:** `http://localhost:8000/api`
-
----
-
-**Built with Spring Boot & AI** 🚀
