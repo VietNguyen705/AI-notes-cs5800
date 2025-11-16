@@ -1,5 +1,9 @@
 package com.notesapp.controllers;
 
+import com.notesapp.decorators.CategoryEnrichmentDecorator;
+import com.notesapp.decorators.NoteEnrichment;
+import com.notesapp.decorators.SentimentEnrichmentDecorator;
+import com.notesapp.decorators.TagEnrichmentDecorator;
 import com.notesapp.entities.Note;
 import com.notesapp.entities.Tag;
 import com.notesapp.entities.User;
@@ -95,16 +99,32 @@ public class NoteController {
     public ResponseEntity<Note> autoOrganizeNote(@PathVariable String id) {
         return noteRepository.findById(id)
             .map(note -> {
-                // Use user-defined categories for both tags and categorization
-                List<Tag> suggestedTags = aiOrganizer.suggestTagsFromUserCategories(note, note.getUserId());
-                for (Tag tag : suggestedTags) {
-                    note.addTag(tag);
-                }
+                /*
+                 * DECORATOR PATTERN Implementation
+                 *
+                 * Instead of directly calling AI services, we stack decorators to enrich the note.
+                 * Each decorator adds a specific AI feature (tags, category, sentiment).
+                 * This allows flexible combination of enrichments and follows Open/Closed Principle.
+                 *
+                 * Pattern structure:
+                 * 1. TagEnrichmentDecorator - adds AI-suggested tags
+                 * 2. CategoryEnrichmentDecorator - adds AI-categorization
+                 * 3. SentimentEnrichmentDecorator - adds sentiment analysis
+                 */
 
-                String category = aiOrganizer.categorizeWithUserCategories(note, note.getUserId());
-                note.setCategory(category);
+                // Apply Tag enrichment
+                NoteEnrichment tagEnrichment = new TagEnrichmentDecorator(note, aiOrganizer, note.getUserId());
+                Note enrichedNote = tagEnrichment.enrich();
 
-                Note updated = noteRepository.save(note);
+                // Apply Category enrichment
+                NoteEnrichment categoryEnrichment = new CategoryEnrichmentDecorator(enrichedNote, aiOrganizer, note.getUserId());
+                enrichedNote = categoryEnrichment.enrich();
+
+                // Apply Sentiment enrichment
+                NoteEnrichment sentimentEnrichment = new SentimentEnrichmentDecorator(enrichedNote);
+                enrichedNote = sentimentEnrichment.enrich();
+
+                Note updated = noteRepository.save(enrichedNote);
                 return ResponseEntity.ok(updated);
             })
             .orElse(ResponseEntity.notFound().build());

@@ -1,6 +1,7 @@
 com\notesapp\entities\ChecklistItemTest.class
 com\notesapp\entities\ReminderTest.class
 com\notesapp\entities\TodoItemTest.class
+com\notesapp\services\AIOrganizerTest.class
 com\notesapp\services\NotificationSchedulerTest.class
 com\notesapp\entities\TagTest.class
 com\notesapp\entities\UserTest.class

@@ -1,0 +1,41 @@
+# Maven build artifacts
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Build tools
+build/
+.gradle/
+out/
+
+# Database files
+data/
+*.db
+*.mv.db
+*.trace.db
+*.lock.db
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.eclipse/
+.settings/
+.classpath
+.project
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Application properties with secrets (optional local overrides)
+application-local.properties

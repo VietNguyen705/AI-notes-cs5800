@@ -99,7 +99,7 @@ $env:JAVA_HOME = (Get-ChildItem "C:\Program Files\Java" -Directory | Where-Objec
 ./mvnw spring-boot:run
 ```
 
-The application will start on **http://localhost:8080**
+The application will start on **http://localhost:8000**
 
 **Note:** First run downloads dependencies (2-3 minutes). Subsequent runs are fast!
 
@@ -107,7 +107,7 @@ The application will start on **http://localhost:8080**
 
 ### First Time Setup
 
-1. Open your browser and go to **http://localhost:8080**
+1. Open your browser and go to **http://localhost:8000**
 2. Register a new user:
    - Enter a username
    - Enter an email
@@ -168,7 +168,7 @@ The application uses an embedded H2 database that persists data to a file.
 
 ### H2 Console (Database Inspector)
 
-1. Open **http://localhost:8080/h2-console**
+1. Open **http://localhost:8000/h2-console**
 2. Use these settings:
    - **JDBC URL:** `jdbc:h2:file:./data/notesapp`
    - **Username:** `sa`
@@ -187,7 +187,7 @@ You can now browse tables, run SQL queries, and inspect data.
 
 ### Base URL
 ```
-http://localhost:8080/api
+http://localhost:8000/api
 ```
 
 ### User Endpoints
@@ -316,9 +316,152 @@ main/
 
 ### Design Patterns
 
-- **Repository Pattern** - Data access abstraction
+This project implements two key **Gang of Four (GoF)** design patterns to improve code quality, maintainability, and extensibility:
+
+#### 1. Decorator Pattern (Structural)
+
+**Purpose:** Dynamically add AI enrichment features to notes without modifying the Note entity.
+
+**Problem Solved:** Previously, AI features (tags, categorization, sentiment) were hardcoded in the controller. Adding new enrichments required modifying existing code, violating the Open/Closed Principle.
+
+**Implementation:**
+
+```
+src/main/java/com/notesapp/decorators/
+├── NoteEnrichment.java                    # Component interface
+├── BaseNoteEnrichment.java                # Concrete component
+├── TagEnrichmentDecorator.java            # Adds AI-suggested tags
+├── CategoryEnrichmentDecorator.java       # Adds AI categorization
+└── SentimentEnrichmentDecorator.java      # Adds sentiment analysis
+```
+
+**Class Structure:**
+```
+┌─────────────────────┐
+│  NoteEnrichment     │ (Interface)
+│  + enrich(): Note   │
+└─────────────────────┘
+         △
+         │
+         ├──────────────────────────┬──────────────────────────┬────────────────────────────┐
+         │                          │                          │                            │
+┌────────────────────┐  ┌─────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────────────┐
+│BaseNoteEnrichment  │  │TagEnrichmentDecorator   │  │CategoryEnrichmentDecorator│  │SentimentEnrichmentDecorator│
+│- note: Note        │  │- note: Note             │  │- note: Note              │  │- note: Note              │
+│+ enrich(): Note    │  │- aiOrganizer: AIOrganizer│ │- aiOrganizer: AIOrganizer│  │+ enrich(): Note          │
+└────────────────────┘  │+ enrich(): Note         │  │+ enrich(): Note          │  └──────────────────────────┘
+                        └─────────────────────────┘  └──────────────────────────┘
+```
+
+**Usage Example** (from `NoteController.java`):
+```java
+// Stack decorators to enrich a note with multiple AI features
+NoteEnrichment tagEnrichment = new TagEnrichmentDecorator(note, aiOrganizer, userId);
+Note enrichedNote = tagEnrichment.enrich();
+
+NoteEnrichment categoryEnrichment = new CategoryEnrichmentDecorator(enrichedNote, aiOrganizer, userId);
+enrichedNote = categoryEnrichment.enrich();
+
+NoteEnrichment sentimentEnrichment = new SentimentEnrichmentDecorator(enrichedNote);
+enrichedNote = sentimentEnrichment.enrich();
+```
+
+**Benefits:**
+- ✅ **Open/Closed Principle** - Add new enrichments without modifying existing code
+- ✅ **Single Responsibility** - Each decorator has one specific enrichment task
+- ✅ **Flexibility** - Stack decorators in any order or combination
+- ✅ **Reusability** - Decorators can be reused across different contexts
+
+---
+
+#### 2. Mediator Pattern (Behavioral)
+
+**Purpose:** Coordinate notification delivery across multiple channels without tight coupling.
+
+**Problem Solved:** Previously, `NotificationScheduler` had a switch statement for each notification channel (Email, Push, SMS, In-App). Adding new channels required modifying the scheduler class.
+
+**Implementation:**
+
+```
+src/main/java/com/notesapp/mediator/
+├── NotificationMediator.java              # Mediator coordinator
+├── NotificationChannel.java               # Colleague interface
+├── EmailNotificationChannel.java          # Email delivery
+├── PushNotificationChannel.java           # Push notification delivery
+├── SMSNotificationChannel.java            # SMS delivery
+└── InAppNotificationChannel.java          # In-app notification delivery
+```
+
+**Class Structure:**
+```
+┌──────────────────────────┐
+│  NotificationMediator    │
+│  - channels: Map         │
+│  + registerChannel()     │
+│  + sendNotification()    │
+│  + broadcast()           │
+└──────────────────────────┘
+            │
+            │ coordinates
+            ▼
+┌────────────────────────┐
+│ NotificationChannel    │ (Interface)
+│ + send()               │
+│ + getType()            │
+└────────────────────────┘
+         △
+         │
+         ├────────────────┬────────────────┬────────────────┬──────────────────┐
+         │                │                │                │                  │
+┌────────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────────────┐  ┌────────────┐
+│EmailChannel    │  │PushChannel │  │SMSChannel  │  │InAppChannel      │  │ (Future    │
+│+ send()        │  │+ send()    │  │+ send()    │  │+ send()          │  │  channels) │
+└────────────────┘  └────────────┘  └────────────┘  └──────────────────┘  └────────────┘
+```
+
+**Before (Switch Statement):**
+```java
+switch (reminder.getChannel()) {
+    case PUSH:
+        sendPushNotification(message);
+        break;
+    case EMAIL:
+        sendEmailNotification(message);
+        break;
+    // ... more cases
+}
+```
+
+**After (Mediator Pattern):**
+```java
+// NotificationScheduler.java - simplified delivery
+mediator.sendNotification(reminder);
+```
+
+**Initialization** (from `NotificationScheduler.java`):
+```java
+@PostConstruct
+public void initialize() {
+    mediator.registerChannel(emailChannel);
+    mediator.registerChannel(pushChannel);
+    mediator.registerChannel(smsChannel);
+    mediator.registerChannel(inAppChannel);
+}
+```
+
+**Benefits:**
+- ✅ **Reduced Coupling** - Channels don't know about each other or the scheduler
+- ✅ **Open/Closed Principle** - Add new channels without modifying NotificationScheduler
+- ✅ **Single Source of Truth** - All routing logic centralized in mediator
+- ✅ **Scalability** - Easy to add broadcast and multi-channel features
+
+---
+
+#### Other Patterns in Use
+
+- **Repository Pattern** - Data access abstraction (Spring Data JPA)
 - **Service Layer** - Business logic separation
-- **Dependency Injection** - Spring IoC container
+- **Dependency Injection** - Spring IoC container for loose coupling
 - **RESTful API** - Stateless HTTP endpoints
 
 ### UML Diagrams
@@ -350,9 +493,9 @@ Set JAVA_HOME in PowerShell:
 $env:JAVA_HOME = (Get-ChildItem "C:\Program Files\Java" -Directory | Where-Object {$_.Name -like "jdk*"} | Select-Object -First 1).FullName
 ```
 
-### Port 8080 Already in Use
+### Port 8000 Already in Use
 
-If port 8080 is occupied, change it in `src/main/resources/application.properties`:
+If port 8000 is occupied, change it in `src/main/resources/application.properties`:
 ```properties
 server.port=8081
 ```

@@ -201,15 +201,6 @@ img {
     }
 }
 
-/* Dark mode toggle animation */
-#darkModeToggle svg {
-    transition: transform 0.3s ease;
-}
-
-#darkModeToggle:hover svg {
-    transform: rotate(15deg);
-}
-
 /* Smooth color transitions for note cards */
 .note-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
