@@ -194,7 +194,7 @@ function renderNotes(notes) {
 function createNoteCard(note) {
     const card = document.createElement('div');
     card.className = 'note-card p-5 cursor-pointer group relative';
-    card.style.borderLeftColor = note.color || '#8b5cf6';
+    card.style.borderLeftColor = note.color || '#6b7280';
     card.style.borderLeftWidth = '4px';
     card.dataset.noteId = note.noteId;
 
@@ -205,10 +205,10 @@ function createNoteCard(note) {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-3">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex-1">${escapeHtml(note.title)}</h3>
-            ${note.isPinned ? '<svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>' : ''}
+            ${note.isPinned ? '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>' : ''}
         </div>
         <div class="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-3">${escapeHtml(bodyText)}</div>
-        ${note.category ? `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-2">${escapeHtml(note.category)}</span>` : ''}
+        ${note.category ? `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 mb-2">${escapeHtml(note.category)}</span>` : ''}
         ${note.tags && note.tags.length > 0 ? `
             <div class="flex flex-wrap gap-2 mb-3">
                 ${note.tags.map(tag => `<span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">${escapeHtml(tag.name)}</span>`).join('')}
@@ -301,7 +301,7 @@ async function openNoteModal(noteId = null) {
             updatePinButton();
 
             if (note.category) {
-                categoryDisplay.innerHTML = `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">${escapeHtml(note.category)}</span>`;
+                categoryDisplay.innerHTML = `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400">${escapeHtml(note.category)}</span>`;
             } else {
                 categoryDisplay.innerHTML = '';
             }
@@ -337,9 +337,9 @@ function updatePinButton() {
 
     if (currentNotePinned) {
         pinIcon.classList.remove('text-gray-400');
-        pinIcon.classList.add('text-purple-500');
+        pinIcon.classList.add('text-gray-500');
     } else {
-        pinIcon.classList.remove('text-purple-500');
+        pinIcon.classList.remove('text-gray-500');
         pinIcon.classList.add('text-gray-400');
     }
 }
@@ -420,7 +420,7 @@ function selectNoteColor(color) {
     currentNoteColor = color;
     document.querySelectorAll('.note-color-btn').forEach(btn => {
         if (btn.dataset.color === color) {
-            btn.style.borderColor = '#8b5cf6';
+            btn.style.borderColor = '#6b7280';
             btn.style.borderWidth = '3px';
         } else {
             btn.style.borderColor = '#d1d5db';
@@ -453,7 +453,7 @@ async function autoOrganizeNote(noteId) {
                 const tagsDisplay = document.getElementById('noteTagsDisplay');
 
                 if (note.category) {
-                    categoryDisplay.innerHTML = `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">${escapeHtml(note.category)}</span>`;
+                    categoryDisplay.innerHTML = `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400">${escapeHtml(note.category)}</span>`;
                 }
 
                 if (note.tags && note.tags.length > 0) {
@@ -556,7 +556,7 @@ async function loadSidebarTasks() {
             <div class="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 cursor-pointer" onclick="openTaskEditModal('${task.taskId}')">
                 <input type="checkbox" ${task.status === 'COMPLETED' ? 'checked' : ''}
                     onchange="event.stopPropagation(); toggleTaskQuick('${task.taskId}')"
-                    class="w-4 h-4 mt-0.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer">
+                    class="w-4 h-4 mt-0.5 rounded border-gray-300 text-gray-600 focus:ring-gray-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(task.title)}</div>
                     ${task.priority !== 'LOW' ? `<span class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold mt-1 ${getPriorityClass(task.priority)}">${task.priority}</span>` : ''}
@@ -620,7 +620,7 @@ async function loadTasks(status = 'all') {
             <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 ${task.status === 'COMPLETED' ? 'opacity-60' : ''} cursor-pointer" onclick="openTaskEditModal('${task.taskId}')">
                 <input type="checkbox" ${task.status === 'COMPLETED' ? 'checked' : ''}
                     onchange="event.stopPropagation(); toggleTask('${task.taskId}')"
-                    class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                    class="w-5 h-5 rounded border-gray-300 text-gray-600 focus:ring-gray-500">
                 <div class="flex-1">
                     <div class="font-medium text-gray-900 dark:text-white ${task.status === 'COMPLETED' ? 'line-through' : ''}">${escapeHtml(task.title)}</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -792,7 +792,7 @@ function closeTaskEditModal() {
     editingTaskId = null;
 }
 
-let currentCategoryColor = '#667eea';
+let currentCategoryColor = '#6b7280';
 
 async function openCategoriesModal() {
     if (!currentUser) {
@@ -802,7 +802,7 @@ async function openCategoriesModal() {
 
     document.getElementById('categoriesModal').classList.remove('hidden');
     document.getElementById('categoriesModal').classList.add('flex');
-    currentCategoryColor = '#667eea';
+    currentCategoryColor = '#6b7280';
     document.getElementById('categoryName').value = '';
     document.getElementById('categoryDescription').value = '';
     loadCategories();
@@ -870,7 +870,7 @@ async function createCategory(e) {
             showToast('Category created!', 'success');
             document.getElementById('categoryName').value = '';
             document.getElementById('categoryDescription').value = '';
-            currentCategoryColor = '#667eea';
+            currentCategoryColor = '#6b7280';
             loadCategories();
             loadCategoryFilter();
         }
@@ -956,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.task-filter-btn').forEach(btn => {
                 btn.className = 'task-filter-btn px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300';
             });
-            e.target.className = 'task-filter-btn px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400';
+            e.target.className = 'task-filter-btn px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
             loadTasks(e.target.dataset.status);
         }
     });
