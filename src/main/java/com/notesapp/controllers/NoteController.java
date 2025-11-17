@@ -99,28 +99,12 @@ public class NoteController {
     public ResponseEntity<Note> autoOrganizeNote(@PathVariable String id) {
         return noteRepository.findById(id)
             .map(note -> {
-                /*
-                 * DECORATOR PATTERN Implementation
-                 *
-                 * Instead of directly calling AI services, we stack decorators to enrich the note.
-                 * Each decorator adds a specific AI feature (tags, category, sentiment).
-                 * This allows flexible combination of enrichments and follows Open/Closed Principle.
-                 *
-                 * Pattern structure:
-                 * 1. TagEnrichmentDecorator - adds AI-suggested tags
-                 * 2. CategoryEnrichmentDecorator - adds AI-categorization
-                 * 3. SentimentEnrichmentDecorator - adds sentiment analysis
-                 */
-
-                // Apply Tag enrichment
                 NoteEnrichment tagEnrichment = new TagEnrichmentDecorator(note, aiOrganizer, note.getUserId());
                 Note enrichedNote = tagEnrichment.enrich();
 
-                // Apply Category enrichment
                 NoteEnrichment categoryEnrichment = new CategoryEnrichmentDecorator(enrichedNote, aiOrganizer, note.getUserId());
                 enrichedNote = categoryEnrichment.enrich();
 
-                // Apply Sentiment enrichment
                 NoteEnrichment sentimentEnrichment = new SentimentEnrichmentDecorator(enrichedNote);
                 enrichedNote = sentimentEnrichment.enrich();
 

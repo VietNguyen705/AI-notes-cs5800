@@ -40,7 +40,6 @@ public class AIOrganizer {
 
         Map<String, Object> result = new HashMap<>();
 
-        // If API key is not configured, use simple keyword-based analysis
         if (apiKey == null || apiKey.isEmpty()) {
             result.put("tags", extractKeywordTags(text));
             result.put("category", inferCategory(text));
@@ -48,7 +47,6 @@ public class AIOrganizer {
             return result;
         }
 
-        // Call OpenAI API for advanced analysis
         try {
             String prompt = "Analyze the following note and suggest 3-5 relevant tags and a category. " +
                            "Return only a comma-separated list of tags.\n\nNote: " + text;
@@ -58,7 +56,6 @@ public class AIOrganizer {
             result.put("category", inferCategory(text));
 
         } catch (Exception e) {
-            // Fallback to keyword-based analysis
             result.put("tags", extractKeywordTags(text));
             result.put("category", inferCategory(text));
         }
@@ -113,11 +110,9 @@ public class AIOrganizer {
             return new ArrayList<>();
         }
 
-        // Create tags from user's category names only
         List<Tag> tags = new ArrayList<>();
 
         for (Category category : userCategories) {
-            // Check if note content matches this category
             String lowerContent = content.toLowerCase();
             String categoryName = category.getName().toLowerCase();
             String categoryDesc = (category.getDescription() != null ? category.getDescription() : "").toLowerCase();
@@ -159,7 +154,6 @@ public class AIOrganizer {
         String lowerText = text.toLowerCase();
         List<String> tags = new ArrayList<>();
 
-        // Keyword-based tag extraction
         Map<String, List<String>> keywordMap = new HashMap<>();
         keywordMap.put("Work", Arrays.asList("work", "meeting", "project", "deadline", "task", "office", "client"));
         keywordMap.put("Personal", Arrays.asList("personal", "home", "family", "friend", "birthday", "vacation"));
@@ -264,7 +258,6 @@ public class AIOrganizer {
 
         String content = (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
 
-        // Try OpenAI API first if available
         if (apiKey != null && !apiKey.isEmpty()) {
             try {
                 String categoryList = userCategories.stream()
@@ -279,20 +272,17 @@ public class AIOrganizer {
                 String response = callOpenAI(prompt);
                 String trimmedResponse = response.trim();
 
-                // Check if response is one of the valid categories
                 for (Category category : userCategories) {
                     if (trimmedResponse.equalsIgnoreCase(category.getName())) {
                         return category.getName();
                     }
                 }
 
-                // If OpenAI returned NONE or invalid category, fall back to keyword matching
             } catch (Exception e) {
                 System.err.println("Error using OpenAI for categorization: " + e.getMessage());
             }
         }
 
-        // Keyword-based fallback - only from user categories
         String bestCategory = findBestMatchingCategory(content, userCategories);
         return bestCategory;
     }
@@ -321,7 +311,6 @@ public class AIOrganizer {
             }
         }
 
-        // Return null if no keywords match - don't force a category
         if (categoryScores.isEmpty()) {
             return null;
         }

@@ -51,8 +51,6 @@ public class User {
     }
 
     public boolean authenticate() {
-        // Placeholder authentication logic
-        // In real implementation, verify against stored credentials
         return true;
     }
 

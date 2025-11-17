@@ -1,13 +1,9 @@
-/* Additional custom styles to complement Tailwind CSS */
-
-/* Smooth transitions for dark mode */
 * {
     transition-property: background-color, border-color, color;
     transition-duration: 200ms;
     transition-timing-function: ease-in-out;
 }
 
-/* Custom scrollbar for dark mode */
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -34,7 +30,6 @@
     background: #718096;
 }
 
-/* Quill editor dark mode customization */
 .dark .ql-toolbar {
     background-color: #374151 !important;
     border-color: #4b5563 !important;
@@ -66,7 +61,6 @@
     background-color: #374151 !important;
 }
 
-/* Line clamp utility for text truncation */
 .line-clamp-3 {
     overflow: hidden;
     display: -webkit-box;
@@ -74,12 +68,10 @@
     -webkit-line-clamp: 3;
 }
 
-/* Smooth hover animations for cards */
 .note-card {
     will-change: transform, box-shadow;
 }
 
-/* Loading animation */
 @keyframes shimmer {
     0% {
         background-position: -1000px 0;
@@ -111,24 +103,20 @@
     );
 }
 
-/* Focus ring improvements */
 *:focus-visible {
     outline: 2px solid #8b5cf6;
     outline-offset: 2px;
 }
 
-/* Prevent FOUC (Flash of Unstyled Content) */
 html {
     visibility: visible;
     opacity: 1;
 }
 
-/* Smooth scroll behavior */
 html {
     scroll-behavior: smooth;
 }
 
-/* Print styles */
 @media print {
     .sidebar,
     header button,
@@ -142,7 +130,6 @@ html {
     }
 }
 
-/* Accessibility improvements */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -155,7 +142,6 @@ html {
     border-width: 0;
 }
 
-/* Toast animation override for smoother effect */
 #toastContainer > div {
     animation: slideInRight 0.3s ease-out;
 }
@@ -171,42 +157,35 @@ html {
     }
 }
 
-/* Improved modal backdrop blur */
 .modal-backdrop {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
 
-/* Custom checkbox styling */
 input[type="checkbox"] {
     cursor: pointer;
 }
 
-/* Prevent text selection on buttons */
 button {
     user-select: none;
     -webkit-user-select: none;
 }
 
-/* Image optimization */
 img {
     max-width: 100%;
     height: auto;
 }
 
-/* Responsive grid improvements */
 @media (max-width: 640px) {
     #notesGrid {
         grid-template-columns: 1fr;
     }
 }
 
-/* Smooth color transitions for note cards */
 .note-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Better focus states for inputs */
 input:focus,
 textarea:focus,
 select:focus {

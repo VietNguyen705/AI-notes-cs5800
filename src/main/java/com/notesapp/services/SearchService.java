@@ -24,14 +24,11 @@ public class SearchService {
         List<Note> results;
 
         if (query.trim().isEmpty()) {
-            // If query is empty, get all user notes
             results = noteRepository.findByUserId(userId);
         } else {
-            // Search by text
             results = searchByText(userId, query);
         }
 
-        // Apply filters if provided
         if (filters != null && !filters.isEmpty()) {
             results = applyFilters(results, filters);
         }
@@ -83,7 +80,6 @@ public class SearchService {
     private List<Note> applyFilters(List<Note> notes, Map<String, Object> filters) {
         List<Note> filtered = new ArrayList<>(notes);
 
-        // Filter by category
         if (filters.containsKey("category")) {
             String category = (String) filters.get("category");
             filtered = filtered.stream()
@@ -91,7 +87,6 @@ public class SearchService {
                 .collect(Collectors.toList());
         }
 
-        // Filter by pinned status
         if (filters.containsKey("isPinned")) {
             Boolean isPinned = (Boolean) filters.get("isPinned");
             filtered = filtered.stream()
@@ -99,7 +94,6 @@ public class SearchService {
                 .collect(Collectors.toList());
         }
 
-        // Filter by tags
         if (filters.containsKey("tags")) {
             @SuppressWarnings("unchecked")
             List<String> tagNames = (List<String>) filters.get("tags");
@@ -109,7 +103,6 @@ public class SearchService {
                 .collect(Collectors.toList());
         }
 
-        // Filter by date range
         if (filters.containsKey("startDate") && filters.containsKey("endDate")) {
             LocalDateTime start = (LocalDateTime) filters.get("startDate");
             LocalDateTime end = (LocalDateTime) filters.get("endDate");
@@ -119,7 +112,6 @@ public class SearchService {
                 .collect(Collectors.toList());
         }
 
-        // Filter by color
         if (filters.containsKey("color")) {
             String color = (String) filters.get("color");
             filtered = filtered.stream()

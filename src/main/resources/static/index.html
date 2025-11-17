@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI-Enhanced Notes App</title>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Quill Rich Text Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-    <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- Tailwind Configuration -->
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -62,10 +59,9 @@
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen transition-colors duration-300">
 
-    <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <!-- Header -->
+
     <header class="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-800 dark:to-indigo-800 shadow-xl sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
@@ -91,9 +87,8 @@
     </header>
 
     <div class="flex">
-        <!-- Sidebar -->
         <aside class="w-64 bg-white dark:bg-gray-800 min-h-screen p-6 shadow-lg transition-colors duration-300 hidden lg:block">
-            <!-- User Section -->
+
             <div class="mb-8">
                 <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">User</h3>
                 <div id="loginSection" class="space-y-3">
@@ -106,7 +101,7 @@
                 </div>
             </div>
 
-            <!-- Filter Section -->
+
             <div class="mb-8">
                 <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Filter</h3>
                 <div class="space-y-2">
@@ -133,7 +128,7 @@
                 </div>
             </div>
 
-            <!-- Categories Section -->
+
             <div class="mb-8">
                 <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Categories</h3>
                 <button id="manageCategoriesBtn" class="btn-secondary w-full">
@@ -146,11 +141,10 @@
                 </button>
             </div>
 
-            <!-- Tasks Section -->
+
             <div>
                 <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">To-Do List</h3>
                 <div id="sidebarTasksList" class="space-y-2 max-h-96 overflow-y-auto mb-3">
-                    <!-- Tasks will be loaded here -->
                 </div>
                 <button id="viewAllTasksBtn" class="btn-secondary w-full text-xs">
                     View All Tasks
@@ -158,9 +152,8 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-6">
-            <!-- Toolbar -->
+
             <div class="mb-6 flex flex-col sm:flex-row gap-4">
                 <div class="flex-1 relative">
                     <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,14 +172,12 @@
                 </button>
             </div>
 
-            <!-- Notes Grid -->
             <div id="notesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <!-- Notes will be dynamically loaded here -->
             </div>
         </main>
     </div>
 
-    <!-- Tasks Modal -->
+
     <div id="tasksModal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -205,13 +196,12 @@
                     <button class="task-filter-btn px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" data-status="COMPLETED">Completed</button>
                 </div>
                 <div id="tasksList" class="space-y-2 max-h-96 overflow-y-auto">
-                    <!-- Tasks will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Categories Modal -->
+
     <div id="categoriesModal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -239,13 +229,12 @@
                     <button type="submit" class="btn-primary w-full">Add Category</button>
                 </form>
                 <div id="categoriesList" class="space-y-3">
-                    <!-- Categories will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Task Edit Modal -->
+
     <div id="taskEditModal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full transform transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -293,7 +282,7 @@
         </div>
     </div>
 
-    <!-- Note Edit Modal -->
+
     <div id="noteModal" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
