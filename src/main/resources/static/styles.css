@@ -104,7 +104,7 @@
 }
 
 *:focus-visible {
-    outline: 2px solid #8b5cf6;
+    outline: 2px solid #6b7280;
     outline-offset: 2px;
 }
 
@@ -189,11 +189,11 @@ img {
 input:focus,
 textarea:focus,
 select:focus {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
 }
 
 .dark input:focus,
 .dark textarea:focus,
 .dark select:focus {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.2);
 }
