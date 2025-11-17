@@ -88,7 +88,6 @@ public class Note {
     }
 
     public void create() {
-        // Creation logic handled by repository
         if (this.title == null || this.title.trim().isEmpty()) {
             throw new IllegalArgumentException("Title cannot be null or empty");
         }
@@ -119,8 +118,6 @@ public class Note {
     }
 
     public void delete() {
-        // Soft delete - handled by repository
-        // Cancel associated reminders
         if (this.reminder != null) {
             this.reminder.cancel();
         }
@@ -143,13 +140,9 @@ public class Note {
     }
 
     public void autoOrganize() {
-        // Auto-organization logic handled by AIOrganizer service
-        // This method will be called by the service
     }
 
     public List<TodoItem> generateTasks() {
-        // Task generation logic handled by TaskGenerator service
-        // This method returns empty list, actual generation done by service
         return new ArrayList<>();
     }
 

@@ -117,7 +117,6 @@ public class TodoItem {
     }
 
     public void delete() {
-        // Deletion handled by repository
         if (this.reminder != null) {
             this.reminder.cancel();
         }

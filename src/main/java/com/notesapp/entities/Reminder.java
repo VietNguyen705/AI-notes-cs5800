@@ -44,14 +44,12 @@ public class Reminder {
     private TodoItem todoItem;
 
     public void schedule() {
-        // Scheduling logic handled by NotificationScheduler service
         if (this.scheduledTime == null || this.scheduledTime.isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Scheduled time must be in the future");
         }
     }
 
     public void cancel() {
-        // Cancellation logic handled by NotificationScheduler service
         this.isDelivered = false;
     }
 
@@ -68,6 +66,5 @@ public class Reminder {
             throw new IllegalStateException("Reminder already delivered");
         }
         this.isDelivered = true;
-        // Actual delivery logic handled by NotificationScheduler service
     }
 }

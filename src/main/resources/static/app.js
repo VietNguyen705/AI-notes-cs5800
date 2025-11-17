@@ -3,17 +3,15 @@ const API_BASE = 'http://localhost:8000/api';
 let currentUser = null;
 let currentFilter = 'all';
 let editingNoteId = null;
-let quillEditor = null; // Single Quill instance for the modal
+let quillEditor = null;
 let currentNoteColor = '#FFFFFF';
 let currentNotePinned = false;
 
-// ==================== DARK MODE ====================
 function initDarkMode() {
-    // Force dark mode as default
     document.documentElement.classList.add('dark');
 }
 
-// ==================== TOAST NOTIFICATIONS ====================
+
 function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer');
     const toast = document.createElement('div');
@@ -40,14 +38,12 @@ function showToast(message, type = 'info') {
 
     toastContainer.appendChild(toast);
 
-    // Auto remove after 3 seconds
     setTimeout(() => {
         toast.classList.add('translate-x-full', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-// ==================== USER MANAGEMENT ====================
 async function registerUser() {
     const username = document.getElementById('usernameInput').value.trim();
     const email = document.getElementById('emailInput').value.trim();
@@ -157,7 +153,6 @@ async function loadCategoryFilter() {
     }
 }
 
-// ==================== NOTES MANAGEMENT ====================
 async function loadNotes() {
     if (!currentUser) {
         document.getElementById('notesGrid').innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center col-span-full py-12">Please login to view notes</p>';
@@ -168,7 +163,6 @@ async function loadNotes() {
         const response = await fetch(`${API_BASE}/notes?userId=${currentUser.userId}`);
         let notes = await response.json();
 
-        // Apply filter
         if (currentFilter === 'pinned') {
             notes = notes.filter(note => note.isPinned);
         } else if (currentFilter !== 'all' && currentFilter) {
@@ -204,7 +198,6 @@ function createNoteCard(note) {
     card.style.borderLeftWidth = '4px';
     card.dataset.noteId = note.noteId;
 
-    // Create a temporary div to extract text from HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = note.body || '';
     const bodyText = tempDiv.textContent || tempDiv.innerText || '';
@@ -227,15 +220,12 @@ function createNoteCard(note) {
         </div>
     `;
 
-    // Add click event to the entire card to open edit modal
     card.addEventListener('click', (e) => {
-        // Only open if clicking on the card itself, not buttons
         if (!e.target.closest('button')) {
             openNoteModal(note.noteId);
         }
     });
 
-    // Add event listeners to buttons
     const organizeBtn = card.querySelector('[data-action="organize"]');
     const generateBtn = card.querySelector('[data-action="generate-tasks"]');
 
@@ -258,7 +248,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Initialize Quill editor once
 function initQuillEditor() {
     if (!quillEditor) {
         quillEditor = new Quill('#noteEditor', {
@@ -295,11 +284,9 @@ async function openNoteModal(noteId = null) {
     const categoryDisplay = document.getElementById('noteCategoryDisplay');
     const tagsDisplay = document.getElementById('noteTagsDisplay');
 
-    // Initialize Quill if not already done
     initQuillEditor();
 
     if (noteId) {
-        // Edit mode
         try {
             const response = await fetch(`${API_BASE}/notes/${noteId}`);
             const note = await response.json();
@@ -311,10 +298,8 @@ async function openNoteModal(noteId = null) {
             currentNotePinned = note.isPinned || false;
             deleteBtn.classList.remove('hidden');
 
-            // Update pin button
             updatePinButton();
 
-            // Display category and tags
             if (note.category) {
                 categoryDisplay.innerHTML = `<span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">${escapeHtml(note.category)}</span>`;
             } else {
@@ -332,7 +317,6 @@ async function openNoteModal(noteId = null) {
             return;
         }
     } else {
-        // Create mode
         modalTitle.textContent = 'Create Note';
         noteTitle.value = '';
         quillEditor.root.innerHTML = '';
@@ -379,7 +363,6 @@ async function saveNote() {
 
     try {
         if (editingNoteId) {
-            // Update existing note
             await fetch(`${API_BASE}/notes/${editingNoteId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -387,7 +370,6 @@ async function saveNote() {
             });
             showToast('Note updated successfully!', 'success');
         } else {
-            // Create new note
             await fetch(`${API_BASE}/notes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -436,7 +418,6 @@ async function deleteNote() {
 
 function selectNoteColor(color) {
     currentNoteColor = color;
-    // Optional: provide visual feedback
     document.querySelectorAll('.note-color-btn').forEach(btn => {
         if (btn.dataset.color === color) {
             btn.style.borderColor = '#8b5cf6';
@@ -449,7 +430,6 @@ function selectNoteColor(color) {
 }
 
 async function autoOrganizeNote(noteId) {
-    // Use the noteId if called from card, or editingNoteId if called from modal
     const targetNoteId = noteId || editingNoteId;
 
     if (!targetNoteId) {
@@ -465,7 +445,6 @@ async function autoOrganizeNote(noteId) {
         if (response.ok) {
             showToast('Note organized with AI tags!', 'success');
 
-            // If modal is open, reload the note data
             if (editingNoteId) {
                 const noteResponse = await fetch(`${API_BASE}/notes/${targetNoteId}`);
                 const note = await noteResponse.json();
@@ -498,7 +477,6 @@ async function generateTasksFromNote(noteId) {
         return;
     }
 
-    // Use the noteId if called from card, or editingNoteId if called from modal
     const targetNoteId = noteId || editingNoteId;
 
     if (!targetNoteId) {
@@ -514,7 +492,7 @@ async function generateTasksFromNote(noteId) {
         if (response.ok) {
             const tasks = await response.json();
             showToast(`Generated ${tasks.length} tasks!`, 'success');
-            loadSidebarTasks(); // Refresh sidebar tasks
+            loadSidebarTasks();
         } else {
             showToast('Error generating tasks', 'error');
         }
@@ -524,7 +502,6 @@ async function generateTasksFromNote(noteId) {
     }
 }
 
-// Search with debouncing
 let searchTimeout;
 function searchNotes() {
     clearTimeout(searchTimeout);
@@ -554,7 +531,6 @@ function searchNotes() {
     }, 300);
 }
 
-// ==================== TASKS MANAGEMENT ====================
 async function loadSidebarTasks() {
     if (!currentUser) {
         document.getElementById('sidebarTasksList').innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Login to view tasks</p>';
@@ -565,7 +541,6 @@ async function loadSidebarTasks() {
         const response = await fetch(`${API_BASE}/todos?userId=${currentUser.userId}`);
         const allTasks = await response.json();
 
-        // Show only pending and in-progress tasks, limit to 5
         const activeTasks = allTasks
             .filter(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS')
             .slice(0, 5);
@@ -599,7 +574,6 @@ async function toggleTaskQuick(taskId) {
             method: 'PUT'
         });
         loadSidebarTasks();
-        // Also reload modal tasks if it's open
         const tasksModal = document.getElementById('tasksModal');
         if (!tasksModal.classList.contains('hidden')) {
             loadTasks();
@@ -700,7 +674,7 @@ async function deleteTask(taskId, event) {
         });
         showToast('Task deleted!', 'success');
         loadTasks();
-        loadSidebarTasks(); // Refresh sidebar
+        loadSidebarTasks();
     } catch (error) {
         console.error('Error deleting task:', error);
         showToast('Error deleting task', 'error');
@@ -709,7 +683,6 @@ async function deleteTask(taskId, event) {
 
 window.deleteTask = deleteTask;
 
-// ==================== TASK EDITING ====================
 let editingTaskId = null;
 
 async function openTaskEditModal(taskId) {
@@ -723,7 +696,6 @@ async function openTaskEditModal(taskId) {
         document.getElementById('editTaskPriority').value = task.priority;
         document.getElementById('editTaskStatus').value = task.status;
 
-        // Format due date for datetime-local input
         if (task.dueDate) {
             const date = new Date(task.dueDate);
             const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -765,7 +737,6 @@ async function saveTaskEdit() {
         status
     };
 
-    // Only add dueDate if it's set
     if (dueDateValue) {
         taskData.dueDate = new Date(dueDateValue).toISOString();
     }
@@ -781,7 +752,6 @@ async function saveTaskEdit() {
         closeTaskEditModal();
         loadSidebarTasks();
 
-        // Reload tasks modal if it's open
         const tasksModal = document.getElementById('tasksModal');
         if (!tasksModal.classList.contains('hidden')) {
             loadTasks();
@@ -805,7 +775,6 @@ async function deleteTaskFromEdit() {
         closeTaskEditModal();
         loadSidebarTasks();
 
-        // Reload tasks modal if it's open
         const tasksModal = document.getElementById('tasksModal');
         if (!tasksModal.classList.contains('hidden')) {
             loadTasks();
@@ -823,7 +792,6 @@ function closeTaskEditModal() {
     editingTaskId = null;
 }
 
-// ==================== CATEGORIES MANAGEMENT ====================
 let currentCategoryColor = '#667eea';
 
 async function openCategoriesModal() {
@@ -930,17 +898,14 @@ async function deleteCategory(categoryId) {
 
 window.deleteCategory = deleteCategory;
 
-// ==================== EVENT LISTENERS ====================
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
     loadUserFromStorage();
 
-    // User actions
     document.getElementById('registerBtn').addEventListener('click', registerUser);
     document.getElementById('loginBtn').addEventListener('click', loginUser);
     document.getElementById('logoutBtn').addEventListener('click', logoutUser);
 
-    // Note actions
     document.getElementById('createNoteBtn').addEventListener('click', () => openNoteModal());
     document.getElementById('searchInput').addEventListener('input', searchNotes);
     document.getElementById('saveNoteBtn').addEventListener('click', saveNote);
@@ -949,18 +914,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('autoOrganizeModalBtn').addEventListener('click', () => autoOrganizeNote());
     document.getElementById('generateTasksModalBtn').addEventListener('click', () => generateTasksFromNote());
 
-    // Modal actions
     document.getElementById('viewAllTasksBtn').addEventListener('click', openTasksModal);
     document.getElementById('manageCategoriesBtn').addEventListener('click', openCategoriesModal);
 
-    // Task edit modal
     document.getElementById('saveTaskBtn').addEventListener('click', saveTaskEdit);
     document.getElementById('deleteTaskEditBtn').addEventListener('click', deleteTaskFromEdit);
 
-    // Category form
     document.getElementById('categoryForm').addEventListener('submit', createCategory);
 
-    // Filter buttons
     document.querySelectorAll('.sidebar-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
@@ -971,14 +932,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Category filter
     document.getElementById('categoryFilter').addEventListener('change', (e) => {
         document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
         currentFilter = e.target.value || 'all';
         loadNotes();
     });
 
-    // Category color picker
     document.querySelectorAll('.category-color-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -992,7 +951,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Task filter buttons
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('task-filter-btn')) {
             document.querySelectorAll('.task-filter-btn').forEach(btn => {
@@ -1003,7 +961,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Note color picker
     document.querySelectorAll('.note-color-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1011,7 +968,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Close modals
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
             document.getElementById('tasksModal').classList.add('hidden');
@@ -1025,7 +981,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Close modals on background click
     document.getElementById('tasksModal').addEventListener('click', (e) => {
         if (e.target.id === 'tasksModal') {
             e.target.classList.add('hidden');

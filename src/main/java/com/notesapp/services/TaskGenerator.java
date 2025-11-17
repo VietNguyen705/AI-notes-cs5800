@@ -42,18 +42,15 @@ public class TaskGenerator {
 
         List<Map<String, Object>> actionItems = new ArrayList<>();
 
-        // If API key is not configured, use pattern-based extraction
         if (apiKey == null || apiKey.isEmpty()) {
             actionItems = extractActionItemsByPattern(text);
         } else {
-            // Use OpenAI for more accurate extraction
             try {
                 String prompt = "Extract action items from this note. Return each task on a new line, " +
                                "starting with a dash (-):\n\n" + text;
                 String response = callOpenAI(prompt);
                 actionItems = parseActionItemsFromResponse(response);
             } catch (Exception e) {
-                // Fallback to pattern-based extraction
                 actionItems = extractActionItemsByPattern(text);
             }
         }
@@ -68,7 +65,6 @@ public class TaskGenerator {
 
         String lowerText = text.toLowerCase();
 
-        // Check for relative dates
         if (lowerText.contains("today")) {
             return LocalDateTime.now().withHour(23).withMinute(59);
         }
@@ -82,13 +78,11 @@ public class TaskGenerator {
             return LocalDateTime.now().plusMonths(1).withHour(23).withMinute(59);
         }
 
-        // Pattern for specific dates (e.g., "by Dec 15", "on 12/15", "due 2024-12-15")
         Pattern datePattern = Pattern.compile("(by|on|due|before)\\s+(\\d{1,2}[/-]\\d{1,2}([/-]\\d{2,4})?)",
                                              Pattern.CASE_INSENSITIVE);
         Matcher matcher = datePattern.matcher(text);
         if (matcher.find()) {
-            // Simple date parsing - in production, use proper date parser
-            return LocalDateTime.now().plusDays(7); // Default to 1 week
+            return LocalDateTime.now().plusDays(7);
         }
 
         return null;
@@ -101,7 +95,6 @@ public class TaskGenerator {
 
         String lowerText = text.toLowerCase();
 
-        // Check for urgency keywords
         if (lowerText.contains("urgent") || lowerText.contains("asap") ||
             lowerText.contains("critical") || lowerText.contains("immediately")) {
             return Priority.URGENT;
@@ -149,7 +142,6 @@ public class TaskGenerator {
     private List<Map<String, Object>> extractActionItemsByPattern(String text) {
         List<Map<String, Object>> items = new ArrayList<>();
 
-        // Look for action verbs
         String[] actionVerbs = {"buy", "call", "email", "send", "write", "read", "review",
                                 "complete", "finish", "prepare", "schedule", "book",
                                 "contact", "discuss", "meet", "create", "update", "fix"};
@@ -161,10 +153,8 @@ public class TaskGenerator {
 
             String lowerLine = line.toLowerCase();
 
-            // Check if line starts with bullet point or checkbox
             boolean isBulletPoint = line.matches("^[-*•]\\s+.*") || line.matches("^\\[[ x]\\]\\s+.*");
 
-            // Check if line contains action verb
             boolean hasActionVerb = false;
             for (String verb : actionVerbs) {
                 if (lowerLine.contains(verb)) {
