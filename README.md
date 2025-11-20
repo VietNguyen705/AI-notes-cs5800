@@ -1,4 +1,4 @@
-# AI-Enhanced Notes Application
+# AI notes cs5800
 
 A smart note-taking web application with AI-powered organization, automatic to-do generation. Built with Spring Boot backend and modern JavaScript frontend.
 
@@ -43,9 +43,16 @@ cd "/path/to/project/main"
 ```
 
 **2. (Optional) Configure OpenAI API:**
-Edit `src/main/resources/application.properties`:
-```properties
-openai.api.key=YOUR_API_KEY_HERE
+
+**Option A - Environment Variable (Recommended):**
+```bash
+export OPENAI_API_KEY=your-api-key-here
+```
+
+**Option B - Local Config File:**
+```bash
+cp application-local.properties.example application-local.properties
+# Edit application-local.properties and add your API key
 ```
 
 **3. Run the application:**

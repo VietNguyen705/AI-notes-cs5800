@@ -1,0 +1,6 @@
+# Local configuration example
+# Copy this file to application-local.properties and add your secrets
+# application-local.properties is gitignored and won't be committed
+
+# OpenAI API Key (get from https://platform.openai.com/api-keys)
+openai.api.key=your-api-key-here

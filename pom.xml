@@ -13,10 +13,10 @@
     </parent>
 
     <groupId>com.notesapp</groupId>
-    <artifactId>ai-notes-app</artifactId>
+    <artifactId>ai-notes-cs5800</artifactId>
     <version>1.0.0</version>
-    <name>AI Notes App</name>
-    <description>AI-Enhanced Notes Application</description>
+    <name>AI notes cs5800</name>
+    <description>AI-Enhanced Notes Application - CS 5800 Project</description>
 
     <properties>
         <java.version>17</java.version>
