@@ -1,140 +1,79 @@
 # AI notes cs5800
 
-A smart note-taking web application with AI-powered organization, automatic to-do generation. Built with Spring Boot backend and modern JavaScript frontend.
+notes app with ai stuff - auto tags, pulls tasks from your notes, reminders. made for cs5800 at cal poly pomona.
 
-## Project Information
+## what it does
 
-- **Course:** CS 5800 - Software Engineering
-- **Institution:** Cal Poly Pomona
+- rich text editor (quill.js)
+- ai suggests tags & categories (openai api)
+- extracts todos from note text
+- search and filters
+- task sidebar
+- dark mode
+- reminders via email/push/sms/in-app
 
-## Features
+## tech stack
 
-- **Create & Edit Notes** - Rich text editor with formatting, colors, and pinning
-- **AI Auto-Organize** - Automatic tag suggestions and categorization
-- **Task Generation** - Extract actionable to-dos from note content using NLP
-- **Search & Filter** - Real-time search with multi-criteria filtering
-- **Task Management** - Always-visible sidebar with task tracking and inline editing
-- **Dark Mode** - Default dark theme with smooth transitions
-- **Reminders** - Scheduled notifications with multiple channels (Email, Push, SMS, In-App)
+**backend:** java 21, spring boot 3.1.5, spring data jpa, h2 database, maven
 
-## Technology Stack
+**frontend:** html/css/js, tailwind css, quill.js
 
-### Backend
-- **Java 21** with Spring Boot 3.1.5
-- **Spring Data JPA** for database ORM
-- **H2 Database** (embedded, no installation required)
-- **Maven** for build management
+**ai:** openai api (optional)
 
-### Frontend
-- **HTML5/CSS3/JavaScript** with Vanilla JS
-- **Tailwind CSS 3.x** for styling
-- **Quill.js 1.3.6** for rich text editing
+## setup
 
-### AI Integration
-- **OpenAI API** (optional) for advanced features
+**1. cd to project folder**
 
-## Installation & Setup
-
-### Quick Start
-
-**1. Clone or navigate to project:**
+**2. (optional) set up openai key:**
 ```bash
-cd "/path/to/project/main"
+export OPENAI_API_KEY=your-key
 ```
+or copy `application-local.properties.example` to `application-local.properties` and add your key
 
-**2. (Optional) Configure OpenAI API:**
-
-**Option A - Environment Variable (Recommended):**
+**3. run it:**
 ```bash
-export OPENAI_API_KEY=your-api-key-here
+./mvnw spring-boot:run          # mac/linux
+.\mvnw.cmd spring-boot:run      # windows
 ```
 
-**Option B - Local Config File:**
-```bash
-cp application-local.properties.example application-local.properties
-# Edit application-local.properties and add your API key
-```
+**4. open browser:** http://localhost:8000
 
-**3. Run the application:**
+first run takes a bit to download dependencies.
 
-**Windows:**
-```powershell
-.\mvnw.cmd spring-boot:run
-```
+## design patterns
 
-**Linux/Mac:**
-```bash
-./mvnw spring-boot:run
-```
+implemented 2 patterns for the assignment:
 
-**4. Open browser:**
-```
-http://localhost:8000
-```
+### decorator pattern
+adds ai features to notes without changing the Note class. you can stack decorators to add tags, categories, and sentiment analysis.
 
-The app will start on port 8000. First run downloads dependencies.
+files in `src/main/java/com/notesapp/decorators/`
 
-## Design Patterns
-
-This project implements two design patterns:
-
-### 1. Decorator Pattern (Structural)
-
-**Purpose:** Dynamically add AI enrichment features to notes without modifying the Note entity.
-
-**Implementation:**
-```
-src/main/java/com/notesapp/decorators/
-├── NoteEnrichment.java                    # Component interface
-├── BaseNoteEnrichment.java                # Concrete component
-├── TagEnrichmentDecorator.java            # Adds AI-suggested tags
-├── CategoryEnrichmentDecorator.java       # Adds AI categorization
-└── SentimentEnrichmentDecorator.java      # Adds sentiment analysis
-```
-
-**Usage Example:**
+example:
 ```java
-// Stack decorators to enrich a note with multiple AI features
 NoteEnrichment tagEnrichment = new TagEnrichmentDecorator(note, aiOrganizer, userId);
 Note enrichedNote = tagEnrichment.enrich();
 
 NoteEnrichment categoryEnrichment = new CategoryEnrichmentDecorator(enrichedNote, aiOrganizer, userId);
 enrichedNote = categoryEnrichment.enrich();
-
-NoteEnrichment sentimentEnrichment = new SentimentEnrichmentDecorator(enrichedNote);
-enrichedNote = sentimentEnrichment.enrich();
 ```
 
+### mediator pattern
+handles notifications across email/push/sms/in-app. instead of a giant switch statement, the mediator coordinates everything.
 
----
+files in `src/main/java/com/notesapp/mediator/`
 
-### 2. Mediator Pattern (Behavioral)
-
-**Purpose:** Coordinate notification delivery across multiple channels without tight coupling.
-
-**Implementation:**
-```
-src/main/java/com/notesapp/mediator/
-├── NotificationMediator.java              # Mediator coordinator
-├── NotificationChannel.java               # Colleague interface
-├── EmailNotificationChannel.java          # Email delivery
-├── PushNotificationChannel.java           # Push notifications
-├── SMSNotificationChannel.java            # SMS delivery
-└── InAppNotificationChannel.java          # In-app notifications
-```
-
-**Before (Switch Statement):**
+before:
 ```java
 switch (reminder.getChannel()) {
     case PUSH: sendPushNotification(message); break;
     case EMAIL: sendEmailNotification(message); break;
-    // ... more cases
+    // ...
 }
 ```
 
-**After (Mediator Pattern):**
+after:
 ```java
-// NotificationScheduler.java - simplified delivery
 mediator.sendNotification(reminder);
 ```
 
