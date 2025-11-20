@@ -2,6 +2,8 @@
 
 notes app with ai stuff - auto tags, pulls tasks from your notes, reminders. made for cs5800 at cal poly pomona.
 
+**demo:** https://youtu.be/Mstve0qUzWg
+
 ## what it does
 
 - rich text editor (quill.js)
