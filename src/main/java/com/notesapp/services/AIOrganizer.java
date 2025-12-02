@@ -5,7 +5,6 @@ import com.notesapp.entities.Tag;
 import com.notesapp.entities.Category;
 import com.notesapp.repositories.TagRepository;
 import com.notesapp.repositories.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -13,13 +12,16 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 
+/**
+ * Singleton pattern implementation for AI-powered note organization.
+ * Ensures only one instance exists throughout the application lifecycle.
+ */
 @Service
 public class AIOrganizer {
 
-    @Autowired
-    private TagRepository tagRepository;
+    private static AIOrganizer instance;
 
-    @Autowired
+    private TagRepository tagRepository;
     private CategoryRepository categoryRepository;
 
     @Value("${openai.api.key:}")
@@ -27,10 +29,26 @@ public class AIOrganizer {
 
     private final WebClient webClient;
 
-    public AIOrganizer() {
+    private AIOrganizer() {
         this.webClient = WebClient.builder()
             .baseUrl("https://api.openai.com/v1")
             .build();
+    }
+
+    public static synchronized AIOrganizer getInstance() {
+        if (instance == null) {
+            instance = new AIOrganizer();
+        }
+        return instance;
+    }
+
+    public void setRepositories(TagRepository tagRepository, CategoryRepository categoryRepository) {
+        this.tagRepository = tagRepository;
+        this.categoryRepository = categoryRepository;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
     }
 
     public Map<String, Object> analyzeContent(String text) {

@@ -7,6 +7,7 @@ import com.notesapp.decorators.TagEnrichmentDecorator;
 import com.notesapp.entities.Note;
 import com.notesapp.entities.Tag;
 import com.notesapp.entities.User;
+import com.notesapp.observers.NoteObserver;
 import com.notesapp.repositories.NoteRepository;
 import com.notesapp.repositories.UserRepository;
 import com.notesapp.services.AIOrganizer;
@@ -16,9 +17,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for note operations.
+ * Implements Observer pattern to notify observers of note changes.
+ */
 @RestController
 @RequestMapping("/api/notes")
 @CrossOrigin(origins = "*")
@@ -35,6 +42,30 @@ public class NoteController {
 
     @Autowired
     private SearchService searchService;
+
+    @Autowired(required = false)
+    private List<NoteObserver> observers = new ArrayList<>();
+
+    @PostConstruct
+    public void initializeObservers() {
+        System.out.println("✓ NoteController initialized with " + observers.size() + " observers");
+    }
+
+    public void registerObserver(NoteObserver observer) {
+        if (!observers.contains(observer)) {
+            observers.add(observer);
+        }
+    }
+
+    public void removeObserver(NoteObserver observer) {
+        observers.remove(observer);
+    }
+
+    private void notifyObservers(Note note, String eventType) {
+        for (NoteObserver observer : observers) {
+            observer.update(note, eventType);
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<Note>> getAllNotes(@RequestParam String userId) {
@@ -67,6 +98,8 @@ public class NoteController {
             note.create();
             Note savedNote = noteRepository.save(note);
 
+            notifyObservers(savedNote, "CREATE");
+
             return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -79,6 +112,7 @@ public class NoteController {
             .map(note -> {
                 note.update(updates);
                 Note updated = noteRepository.save(note);
+                notifyObservers(updated, "UPDATE");
                 return ResponseEntity.ok(updated);
             })
             .orElse(ResponseEntity.notFound().build());
@@ -88,6 +122,7 @@ public class NoteController {
     public ResponseEntity<Void> deleteNote(@PathVariable String id) {
         return noteRepository.findById(id)
             .map(note -> {
+                notifyObservers(note, "DELETE");
                 note.delete();
                 noteRepository.delete(note);
                 return ResponseEntity.ok().<Void>build();
