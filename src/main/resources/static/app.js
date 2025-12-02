@@ -214,9 +214,22 @@ function createNoteCard(note) {
                 ${note.tags.map(tag => `<span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">${escapeHtml(tag.name)}</span>`).join('')}
             </div>
         ` : ''}
+        ${note.images && note.images.length > 0 ? `
+            <div class="flex gap-1 mb-2 overflow-x-auto">
+                ${note.images.slice(0, 3).map(img => `<img src="${img}" class="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-600">`).join('')}
+                ${note.images.length > 3 ? `<div class="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">+${note.images.length - 3}</div>` : ''}
+            </div>
+        ` : ''}
+        ${note.voiceRecording ? `
+            <div class="mb-2 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                Audio recording
+            </div>
+        ` : ''}
         <div class="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button data-action="organize" class="btn-secondary text-xs px-3 py-1">AI Organize</button>
             <button data-action="generate-tasks" class="btn-secondary text-xs px-3 py-1">Gen Tasks</button>
+            <button data-action="export-pdf" class="btn-secondary text-xs px-3 py-1">📄 PDF</button>
         </div>
     `;
 
@@ -228,6 +241,7 @@ function createNoteCard(note) {
 
     const organizeBtn = card.querySelector('[data-action="organize"]');
     const generateBtn = card.querySelector('[data-action="generate-tasks"]');
+    const exportBtn = card.querySelector('[data-action="export-pdf"]');
 
     organizeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -237,6 +251,11 @@ function createNoteCard(note) {
     generateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         generateTasksFromNote(note.noteId);
+    });
+
+    exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportNoteToPDF(note.noteId);
     });
 
     return card;
@@ -311,6 +330,14 @@ async function openNoteModal(noteId = null) {
             } else {
                 tagsDisplay.innerHTML = '';
             }
+
+            // Load images
+            currentNoteImages = note.images || [];
+            displayImages();
+
+            // Load audio
+            currentAudioRecording = note.voiceRecording || null;
+            displayAudio();
         } catch (error) {
             console.error('Error loading note:', error);
             showToast('Error loading note', 'error');
@@ -323,6 +350,10 @@ async function openNoteModal(noteId = null) {
         deleteBtn.classList.add('hidden');
         categoryDisplay.innerHTML = '';
         tagsDisplay.innerHTML = '';
+        currentNoteImages = [];
+        currentAudioRecording = null;
+        displayImages();
+        displayAudio();
         updatePinButton();
     }
 
@@ -1007,3 +1038,236 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// PDF Export function
+async function exportNoteToPDF(noteId) {
+    if (!currentUser) {
+        showToast('Please login first', 'warning');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/notes/${noteId}/export/pdf?includeMetadata=true`);
+
+        if (!response.ok) {
+            throw new Error('Failed to export PDF');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `note-${noteId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        showToast('PDF exported successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        showToast('Failed to export PDF', 'error');
+    }
+}
+
+window.exportNoteToPDF = exportNoteToPDF;
+
+// Rich Media Support - Image Upload
+let currentNoteImages = [];
+let currentAudioRecording = null;
+let mediaRecorder = null;
+let audioChunks = [];
+
+document.getElementById('uploadImageBtn').addEventListener('click', () => {
+    document.getElementById('imageUploadInput').click();
+});
+
+document.getElementById('imageUploadInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!editingNoteId) {
+        showToast('Please save the note first before uploading images', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('noteId', editingNoteId);
+
+    try {
+        const response = await fetch(`${API_BASE}/media/upload/image`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload image');
+        }
+
+        const data = await response.json();
+        currentNoteImages.push(data.url);
+        displayImages();
+        showToast('Image uploaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showToast('Failed to upload image', 'error');
+    }
+
+    e.target.value = '';
+});
+
+function displayImages() {
+    const container = document.getElementById('noteImagesDisplay');
+    if (!currentNoteImages || currentNoteImages.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = currentNoteImages.map((url, index) => `
+        <div class="relative group">
+            <img src="${url}" alt="Note image" class="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600">
+            <button onclick="removeImage(${index})" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+async function removeImage(index) {
+    const imageUrl = currentNoteImages[index];
+    const filename = imageUrl.split('/').pop();
+
+    try {
+        const response = await fetch(`${API_BASE}/media/images/${filename}?noteId=${editingNoteId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete image');
+        }
+
+        currentNoteImages.splice(index, 1);
+        displayImages();
+        showToast('Image deleted', 'success');
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        showToast('Failed to delete image', 'error');
+    }
+}
+
+// Audio Recording
+document.getElementById('recordAudioBtn').addEventListener('click', toggleAudioRecording);
+
+async function toggleAudioRecording() {
+    if (!editingNoteId) {
+        showToast('Please save the note first before recording', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('recordAudioBtn');
+
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        btn.textContent = '🎤 Record';
+        btn.classList.remove('bg-red-500', 'text-white');
+        btn.classList.add('btn-secondary');
+    } else {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await uploadAudio(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            btn.textContent = '⏹️ Stop';
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('bg-red-500', 'text-white');
+            showToast('Recording started...', 'info');
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            showToast('Failed to access microphone', 'error');
+        }
+    }
+}
+
+async function uploadAudio(audioBlob) {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.webm');
+    formData.append('noteId', editingNoteId);
+
+    try {
+        const response = await fetch(`${API_BASE}/media/upload/audio`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload audio');
+        }
+
+        const data = await response.json();
+        currentAudioRecording = data.url;
+        displayAudio();
+        showToast('Audio uploaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error uploading audio:', error);
+        showToast('Failed to upload audio', 'error');
+    }
+}
+
+function displayAudio() {
+    const container = document.getElementById('noteAudioDisplay');
+    if (!currentAudioRecording) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <audio controls class="flex-1" src="${currentAudioRecording}">
+                Your browser does not support the audio element.
+            </audio>
+            <button onclick="removeAudio()" class="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
+async function removeAudio() {
+    const filename = currentAudioRecording.split('/').pop();
+
+    try {
+        const response = await fetch(`${API_BASE}/media/audio/${filename}?noteId=${editingNoteId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete audio');
+        }
+
+        currentAudioRecording = null;
+        displayAudio();
+        showToast('Audio deleted', 'success');
+    } catch (error) {
+        console.error('Error deleting audio:', error);
+        showToast('Failed to delete audio', 'error');
+    }
+}
+
+window.removeImage = removeImage;
+window.removeAudio = removeAudio;

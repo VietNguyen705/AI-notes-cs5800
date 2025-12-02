@@ -6,6 +6,7 @@ import com.notesapp.entities.User;
 import com.notesapp.enums.Priority;
 import com.notesapp.enums.TaskStatus;
 import com.notesapp.repositories.TaskRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,14 +19,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Singleton pattern implementation for task generation from notes.
- * Ensures only one instance exists throughout the application lifecycle.
+ * Singleton service for task generation from notes.
+ * Spring's @Service annotation ensures only one instance exists (Singleton pattern).
  */
 @Service
 public class TaskGenerator {
 
-    private static TaskGenerator instance;
-
+    @Autowired
     private TaskRepository taskRepository;
 
     @Value("${openai.api.key:}")
@@ -33,25 +33,10 @@ public class TaskGenerator {
 
     private final WebClient webClient;
 
-    private TaskGenerator() {
+    public TaskGenerator() {
         this.webClient = WebClient.builder()
             .baseUrl("https://api.openai.com/v1")
             .build();
-    }
-
-    public static synchronized TaskGenerator getInstance() {
-        if (instance == null) {
-            instance = new TaskGenerator();
-        }
-        return instance;
-    }
-
-    public void setTaskRepository(TaskRepository taskRepository) {
-        this.taskRepository = taskRepository;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
     }
 
     public List<Map<String, Object>> extractActionItems(String text) {
