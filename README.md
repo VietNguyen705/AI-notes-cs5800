@@ -13,6 +13,8 @@ notes app with ai stuff - auto tags, pulls tasks from your notes, reminders. mad
 - task sidebar
 - dark mode
 - reminders via email/push/sms/in-app
+- **export notes to pdf** with formatting, images, and metadata
+- **rich media support** - upload images and record audio in notes
 
 ## tech stack
 
@@ -94,7 +96,7 @@ mediator.sendNotification(reminder);
 ```
 
 ### 3. singleton pattern (creational)
-ensures only one instance of critical services exists throughout the app lifecycle. provides global access point while preventing duplicate instances.
+ensures only one instance of critical services exists throughout the app lifecycle. implemented using spring's dependency injection container.
 
 **location:** `src/main/java/com/notesapp/services/`
 
@@ -103,10 +105,17 @@ ensures only one instance of critical services exists throughout the app lifecyc
 - `TaskGenerator` - single instance for task extraction
 - `NotificationScheduler` - single instance for scheduled reminders
 
+**implementation:**
+spring's `@Service` annotation automatically creates beans as singletons. the spring container manages the lifecycle and ensures only one instance exists per application context.
+
 **example:**
 ```java
-AIOrganizer organizer = AIOrganizer.getInstance();
-TaskGenerator generator = TaskGenerator.getInstance();
+@Service  // Singleton by default in Spring
+public class AIOrganizer {
+    @Autowired
+    private TagRepository tagRepository;
+    // Spring ensures only one instance exists
+}
 ```
 
 ### 4. observer pattern (behavioral)
@@ -149,4 +158,66 @@ TodoFactory todoFactory = new TodoFactory();
 TodoItem urgentTodo = todoFactory.createUrgentTodo(user, "Fix critical bug");
 TodoItem normalTodo = todoFactory.createTodoWithPriority(user, "Review PR", Priority.MEDIUM);
 ```
+
+## major features
+
+### feature 1: pdf export
+export notes to professional-looking pdf documents with complete formatting preservation.
+
+**capabilities:**
+- export single notes with one click
+- batch export multiple selected notes
+- preserves rich text formatting (bold, italic, lists)
+- includes metadata (title, date, category, tags)
+- embeds todo items and checklists
+- clean, readable layout with proper spacing
+
+**usage:**
+1. hover over any note card
+2. click the "📄 PDF" button
+3. pdf downloads automatically
+
+**api endpoints:**
+- `GET /api/notes/{id}/export/pdf` - export single note
+- `POST /api/notes/export/pdf` - export multiple notes
+- `GET /api/notes/export/all/pdf` - export all user notes
+
+**implementation:**
+- uses apache pdfbox library for generation
+- custom formatting service handles quill html conversion
+- automatic text wrapping and page layout
+- caching for optimal performance
+
+### feature 2: rich media support
+attach images and audio recordings directly to your notes.
+
+**capabilities:**
+- upload images (jpg, png, gif, webp) up to 10mb
+- record audio directly in browser
+- playback audio recordings
+- delete media with one click
+- automatic file storage and retrieval
+- displays images in grid layout
+
+**usage:**
+1. open or create a note
+2. click "📷 Image" to upload photos
+3. click "🎤 Record" to start/stop audio recording
+4. media appears below the note editor
+5. hover over media to delete
+
+**api endpoints:**
+- `POST /api/media/upload/image` - upload image file
+- `POST /api/media/upload/audio` - upload audio recording
+- `GET /api/media/images/{filename}` - retrieve image
+- `GET /api/media/audio/{filename}` - retrieve audio
+- `DELETE /api/media/images/{filename}` - delete image
+- `DELETE /api/media/audio/{filename}` - delete audio
+
+**implementation:**
+- fileStorageService handles local file storage in `uploads/` directory
+- mediaController provides rest api for uploads/downloads
+- browser mediarecorder api for audio capture
+- responsive image grid with tailwind css
+- automatic content-type detection
 

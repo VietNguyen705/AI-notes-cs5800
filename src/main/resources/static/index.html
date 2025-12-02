@@ -308,12 +308,17 @@
                     <div id="noteCategoryDisplay"></div>
                     <div id="noteTagsDisplay"></div>
                 </div>
+                <div id="noteImagesDisplay" class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+                <div id="noteAudioDisplay" class="mt-4"></div>
             </div>
             <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-wrap items-center">
                 <button id="saveNoteBtn" class="btn-primary">Save Note</button>
                 <button id="deleteNoteBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm hidden">Delete</button>
                 <button id="autoOrganizeModalBtn" class="btn-secondary text-sm">AI Organize</button>
                 <button id="generateTasksModalBtn" class="btn-secondary text-sm">Generate Tasks</button>
+                <input type="file" id="imageUploadInput" accept="image/*" class="hidden">
+                <button id="uploadImageBtn" class="btn-secondary text-sm">📷 Image</button>
+                <button id="recordAudioBtn" class="btn-secondary text-sm">🎤 Record</button>
                 <div class="flex gap-2 ml-auto">
                     <span class="text-sm text-gray-500 dark:text-gray-400 mr-2">Color:</span>
                     <button type="button" class="note-color-btn w-7 h-7 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform duration-200" data-color="#FFFFFF" style="background-color: #FFFFFF"></button>
