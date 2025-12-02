@@ -1,15 +1,14 @@
 package com.notesapp.services;
 
+import com.notesapp.config.AppConstants;
 import com.notesapp.entities.Note;
 import com.notesapp.entities.Tag;
 import com.notesapp.entities.Category;
 import com.notesapp.repositories.TagRepository;
 import com.notesapp.repositories.CategoryRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.*;
 
@@ -18,7 +17,11 @@ import java.util.*;
  * Spring's @Service annotation ensures only one instance exists (Singleton pattern).
  */
 @Service
+@Slf4j
 public class AIOrganizer {
+
+    private static final int CATEGORY_NAME_MATCH_SCORE = 10;
+    private static final int DESCRIPTION_WORD_MATCH_SCORE = 5;
 
     @Autowired
     private TagRepository tagRepository;
@@ -26,16 +29,8 @@ public class AIOrganizer {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @Value("${openai.api.key:}")
-    private String apiKey;
-
-    private final WebClient webClient;
-
-    public AIOrganizer() {
-        this.webClient = WebClient.builder()
-            .baseUrl("https://api.openai.com/v1")
-            .build();
-    }
+    @Autowired
+    private OpenAIService openAIService;
 
     public Map<String, Object> analyzeContent(String text) {
         if (text == null || text.trim().isEmpty()) {
@@ -44,7 +39,7 @@ public class AIOrganizer {
 
         Map<String, Object> result = new HashMap<>();
 
-        if (apiKey == null || apiKey.isEmpty()) {
+        if (!openAIService.isAvailable()) {
             result.put("tags", extractKeywordTags(text));
             result.put("category", inferCategory(text));
             result.put("sentiment", "neutral");
@@ -55,7 +50,7 @@ public class AIOrganizer {
             String prompt = "Analyze the following note and suggest 3-5 relevant tags and a category. " +
                            "Return only a comma-separated list of tags.\n\nNote: " + text;
 
-            String response = callOpenAI(prompt);
+            String response = openAIService.callAPI(prompt, AppConstants.OPENAI_MAX_TOKENS_TAGS);
             result.put("tags", parseTagsFromResponse(response));
             result.put("category", inferCategory(text));
 
@@ -72,7 +67,7 @@ public class AIOrganizer {
             throw new IllegalArgumentException("Note cannot be null");
         }
 
-        String content = (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
+        String content = extractNoteContent(note);
 
         if (content.isEmpty()) {
             return new ArrayList<>();
@@ -102,7 +97,7 @@ public class AIOrganizer {
             throw new IllegalArgumentException("Note cannot be null");
         }
 
-        String content = (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
+        String content = extractNoteContent(note);
 
         if (content.isEmpty()) {
             return new ArrayList<>();
@@ -124,7 +119,7 @@ public class AIOrganizer {
             boolean matches = lowerContent.contains(categoryName);
 
             for (String word : categoryDesc.split("\\s+")) {
-                if (word.length() > 3 && lowerContent.contains(word)) {
+                if (word.length() > AppConstants.MIN_KEYWORD_LENGTH && lowerContent.contains(word)) {
                     matches = true;
                     break;
                 }
@@ -150,24 +145,61 @@ public class AIOrganizer {
             throw new IllegalArgumentException("Note cannot be null");
         }
 
-        String content = (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
+        String content = extractNoteContent(note);
         return inferCategory(content);
+    }
+
+    public String categorizeWithUserCategories(Note note, String userId) {
+        if (note == null) {
+            throw new IllegalArgumentException("Note cannot be null");
+        }
+
+        List<Category> userCategories = categoryRepository.findByUserId(userId);
+
+        if (userCategories.isEmpty()) {
+            return null;
+        }
+
+        String content = extractNoteContent(note);
+
+        if (openAIService.isAvailable()) {
+            try {
+                String categoryList = userCategories.stream()
+                    .map(Category::getName)
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("");
+
+                String prompt = "Given these categories: " + categoryList +
+                    "\n\nAnalyze this note and ONLY respond with ONE category name from the list above that best fits it. " +
+                    "If none of the categories fit, respond with 'NONE'.\n\nNote: " + content;
+
+                String response = openAIService.callAPI(prompt, AppConstants.OPENAI_MAX_TOKENS_TAGS);
+                String trimmedResponse = response != null ? response.trim() : "";
+
+                for (Category category : userCategories) {
+                    if (trimmedResponse.equalsIgnoreCase(category.getName())) {
+                        return category.getName();
+                    }
+                }
+
+            } catch (Exception e) {
+                log.warn("Error using OpenAI for categorization: {}", e.getMessage());
+            }
+        }
+
+        String bestCategory = findBestMatchingCategory(content, userCategories);
+        return bestCategory;
+    }
+
+    private String extractNoteContent(Note note) {
+        return (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
     }
 
     private List<String> extractKeywordTags(String text) {
         String lowerText = text.toLowerCase();
         List<String> tags = new ArrayList<>();
 
-        Map<String, List<String>> keywordMap = new HashMap<>();
-        keywordMap.put("Work", Arrays.asList("work", "meeting", "project", "deadline", "task", "office", "client"));
-        keywordMap.put("Personal", Arrays.asList("personal", "home", "family", "friend", "birthday", "vacation"));
-        keywordMap.put("Finance", Arrays.asList("budget", "money", "payment", "invoice", "expense", "bank", "finance"));
-        keywordMap.put("Health", Arrays.asList("health", "doctor", "exercise", "gym", "medication", "appointment"));
-        keywordMap.put("Shopping", Arrays.asList("buy", "shop", "purchase", "order", "store", "grocery"));
-        keywordMap.put("Ideas", Arrays.asList("idea", "brainstorm", "concept", "plan", "think", "consider"));
-        keywordMap.put("Study", Arrays.asList("study", "learn", "course", "exam", "homework", "assignment", "class"));
-
-        for (Map.Entry<String, List<String>> entry : keywordMap.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : AppConstants.KEYWORD_CATEGORIES.entrySet()) {
             for (String keyword : entry.getValue()) {
                 if (lowerText.contains(keyword)) {
                     tags.add(entry.getKey());
@@ -177,53 +209,15 @@ public class AIOrganizer {
         }
 
         if (tags.isEmpty()) {
-            tags.add("General");
+            tags.add(AppConstants.DEFAULT_CATEGORY);
         }
 
-        return tags.stream().distinct().limit(3).toList();
+        return tags.stream().distinct().limit(AppConstants.MAX_KEYWORD_TAGS).toList();
     }
 
     private String inferCategory(String text) {
         List<String> tags = extractKeywordTags(text);
-        return tags.isEmpty() ? "General" : tags.get(0);
-    }
-
-    private String callOpenAI(String prompt) {
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new IllegalStateException("OpenAI API key not configured");
-        }
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-3.5-turbo");
-        requestBody.put("messages", Arrays.asList(
-            Map.of("role", "user", "content", prompt)
-        ));
-        requestBody.put("max_tokens", 100);
-
-        try {
-            Mono<Map> response = webClient.post()
-                .uri("/chat/completions")
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(Map.class);
-
-            Map<String, Object> result = response.block();
-            if (result != null && result.containsKey("choices")) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) result.get("choices");
-                if (!choices.isEmpty()) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return (String) message.get("content");
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error calling OpenAI API: " + e.getMessage());
-        }
-
-        return "";
+        return tags.isEmpty() ? AppConstants.DEFAULT_CATEGORY : tags.get(0);
     }
 
     private List<String> parseTagsFromResponse(String response) {
@@ -241,54 +235,11 @@ public class AIOrganizer {
             }
         }
 
-        return tags.stream().limit(5).toList();
+        return tags.stream().limit(AppConstants.MAX_SUGGESTED_TAGS).toList();
     }
 
     private String generateRandomColor() {
-        String[] colors = {"#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"};
-        return colors[new Random().nextInt(colors.length)];
-    }
-
-    public String categorizeWithUserCategories(Note note, String userId) {
-        if (note == null) {
-            throw new IllegalArgumentException("Note cannot be null");
-        }
-
-        List<Category> userCategories = categoryRepository.findByUserId(userId);
-
-        if (userCategories.isEmpty()) {
-            return null;
-        }
-
-        String content = (note.getTitle() + " " + (note.getBody() != null ? note.getBody() : "")).trim();
-
-        if (apiKey != null && !apiKey.isEmpty()) {
-            try {
-                String categoryList = userCategories.stream()
-                    .map(Category::getName)
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("");
-
-                String prompt = "Given these categories: " + categoryList +
-                    "\n\nAnalyze this note and ONLY respond with ONE category name from the list above that best fits it. " +
-                    "If none of the categories fit, respond with 'NONE'.\n\nNote: " + content;
-
-                String response = callOpenAI(prompt);
-                String trimmedResponse = response.trim();
-
-                for (Category category : userCategories) {
-                    if (trimmedResponse.equalsIgnoreCase(category.getName())) {
-                        return category.getName();
-                    }
-                }
-
-            } catch (Exception e) {
-                System.err.println("Error using OpenAI for categorization: " + e.getMessage());
-            }
-        }
-
-        String bestCategory = findBestMatchingCategory(content, userCategories);
-        return bestCategory;
+        return AppConstants.DEFAULT_TAG_COLORS.get(new Random().nextInt(AppConstants.DEFAULT_TAG_COLORS.size()));
     }
 
     private String findBestMatchingCategory(String content, List<Category> categories) {
@@ -301,12 +252,12 @@ public class AIOrganizer {
             String categoryDesc = (category.getDescription() != null ? category.getDescription() : "").toLowerCase();
 
             if (lowerContent.contains(categoryName)) {
-                score += 10;
+                score += CATEGORY_NAME_MATCH_SCORE;
             }
 
             for (String word : categoryDesc.split("\\s+")) {
-                if (word.length() > 3 && lowerContent.contains(word)) {
-                    score += 5;
+                if (word.length() > AppConstants.MIN_KEYWORD_LENGTH && lowerContent.contains(word)) {
+                    score += DESCRIPTION_WORD_MATCH_SCORE;
                 }
             }
 
