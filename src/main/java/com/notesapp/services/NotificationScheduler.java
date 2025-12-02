@@ -6,7 +6,6 @@ import com.notesapp.enums.TaskStatus;
 import com.notesapp.mediator.*;
 import com.notesapp.repositories.ReminderRepository;
 import com.notesapp.repositories.TaskRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -14,29 +13,48 @@ import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Singleton pattern implementation for notification scheduling.
+ * Ensures only one instance manages all reminders and scheduled tasks.
+ */
 @Service
 public class NotificationScheduler {
 
-    @Autowired
+    private static NotificationScheduler instance;
+
     private ReminderRepository reminderRepository;
-
-    @Autowired
     private TaskRepository taskRepository;
-
-    @Autowired
     private NotificationMediator mediator;
-
-    @Autowired
     private EmailNotificationChannel emailChannel;
-
-    @Autowired
     private PushNotificationChannel pushChannel;
-
-    @Autowired
     private SMSNotificationChannel smsChannel;
-
-    @Autowired
     private InAppNotificationChannel inAppChannel;
+
+    private NotificationScheduler() {
+    }
+
+    public static synchronized NotificationScheduler getInstance() {
+        if (instance == null) {
+            instance = new NotificationScheduler();
+        }
+        return instance;
+    }
+
+    public void setDependencies(ReminderRepository reminderRepository,
+                                TaskRepository taskRepository,
+                                NotificationMediator mediator,
+                                EmailNotificationChannel emailChannel,
+                                PushNotificationChannel pushChannel,
+                                SMSNotificationChannel smsChannel,
+                                InAppNotificationChannel inAppChannel) {
+        this.reminderRepository = reminderRepository;
+        this.taskRepository = taskRepository;
+        this.mediator = mediator;
+        this.emailChannel = emailChannel;
+        this.pushChannel = pushChannel;
+        this.smsChannel = smsChannel;
+        this.inAppChannel = inAppChannel;
+    }
 
     @PostConstruct
     public void initialize() {

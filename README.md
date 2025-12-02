@@ -44,14 +44,20 @@ first run takes a bit to download dependencies.
 
 ## design patterns
 
-implemented 2 patterns for the assignment:
+implemented 5 design patterns for the assignment:
 
-### decorator pattern
+### 1. decorator pattern (structural)
 adds ai features to notes without changing the Note class. you can stack decorators to add tags, categories, and sentiment analysis.
 
-files in `src/main/java/com/notesapp/decorators/`
+**location:** `src/main/java/com/notesapp/decorators/`
 
-example:
+**classes:**
+- `NoteEnrichment` (interface)
+- `TagEnrichmentDecorator`
+- `CategoryEnrichmentDecorator`
+- `SentimentEnrichmentDecorator`
+
+**example:**
 ```java
 NoteEnrichment tagEnrichment = new TagEnrichmentDecorator(note, aiOrganizer, userId);
 Note enrichedNote = tagEnrichment.enrich();
@@ -60,12 +66,20 @@ NoteEnrichment categoryEnrichment = new CategoryEnrichmentDecorator(enrichedNote
 enrichedNote = categoryEnrichment.enrich();
 ```
 
-### mediator pattern
-handles notifications across email/push/sms/in-app. instead of a giant switch statement, the mediator coordinates everything.
+### 2. mediator pattern (behavioral)
+coordinates notification delivery across multiple channels. instead of each service knowing about every channel, the mediator handles routing.
 
-files in `src/main/java/com/notesapp/mediator/`
+**location:** `src/main/java/com/notesapp/mediator/`
 
-before:
+**classes:**
+- `NotificationMediator` (central coordinator)
+- `NotificationChannel` (interface)
+- `EmailNotificationChannel`
+- `PushNotificationChannel`
+- `SMSNotificationChannel`
+- `InAppNotificationChannel`
+
+**before:**
 ```java
 switch (reminder.getChannel()) {
     case PUSH: sendPushNotification(message); break;
@@ -74,8 +88,65 @@ switch (reminder.getChannel()) {
 }
 ```
 
-after:
+**after:**
 ```java
 mediator.sendNotification(reminder);
+```
+
+### 3. singleton pattern (creational)
+ensures only one instance of critical services exists throughout the app lifecycle. provides global access point while preventing duplicate instances.
+
+**location:** `src/main/java/com/notesapp/services/`
+
+**classes:**
+- `AIOrganizer` - single instance for ai-powered organization
+- `TaskGenerator` - single instance for task extraction
+- `NotificationScheduler` - single instance for scheduled reminders
+
+**example:**
+```java
+AIOrganizer organizer = AIOrganizer.getInstance();
+TaskGenerator generator = TaskGenerator.getInstance();
+```
+
+### 4. observer pattern (behavioral)
+notifies multiple observers when notes are created, updated, or deleted. allows loose coupling between note operations and dependent systems.
+
+**location:** `src/main/java/com/notesapp/observers/`
+
+**classes:**
+- `NoteObserver` (interface)
+- `SearchIndexObserver` - updates search index on note changes
+- `NotificationObserver` - sends notifications on note events
+- `AnalyticsObserver` - tracks statistics and metrics
+
+**usage:**
+observers are auto-registered via spring and notified in NoteController when notes change.
+
+**example:**
+```java
+// in NoteController
+notifyObservers(note, "CREATE");  // all observers get notified
+```
+
+### 5. factory pattern (creational)
+centralizes object creation for notification channels and todos. encapsulates creation logic and makes it easy to add new types.
+
+**location:** `src/main/java/com/notesapp/factories/`
+
+**classes:**
+- `NotificationChannelFactory` - creates notification channels by type
+- `TodoFactory` - creates todos with different configurations
+
+**example:**
+```java
+// create notification channel
+NotificationChannelFactory channelFactory = new NotificationChannelFactory();
+NotificationChannel channel = channelFactory.createChannel(NotificationChannel.EMAIL);
+
+// create todos with different priorities
+TodoFactory todoFactory = new TodoFactory();
+TodoItem urgentTodo = todoFactory.createUrgentTodo(user, "Fix critical bug");
+TodoItem normalTodo = todoFactory.createTodoWithPriority(user, "Review PR", Priority.MEDIUM);
 ```
 
