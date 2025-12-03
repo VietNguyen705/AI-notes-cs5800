@@ -1,0 +1,425 @@
+@startuml NotesApp-ClassDiagram-Initial
+
+' ========================================
+' NOTE: This diagram represents the INITIAL codebase state (commit 8f84bb6)
+' BEFORE any design patterns were added.
+' This was a basic Spring Boot application with standard MVC architecture:
+' - Controllers handle HTTP requests
+' - Services contain business logic (with @Autowired dependency injection)
+' - Repositories handle data persistence
+' - NO design patterns implemented yet
+'
+' Design patterns were added later:
+' - Commit 64ec69d: Added Decorator and Mediator patterns
+' - Commit 940be08 (part 1): Added Factory and Observer patterns
+' - Commit 809315e→940be08: Changed to manual Singleton pattern
+' - Commit 5f678ea (part 2): Added PDF export and media features
+' - Commit 56960a4 (part 3): Clean code refactoring
+' ========================================
+
+' ========================================
+' ENUMS PACKAGE
+' ========================================
+package com.notesapp.enums {
+    enum TaskStatus {
+        PENDING
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+
+    enum Priority {
+        LOW
+        MEDIUM
+        HIGH
+        URGENT
+    }
+
+    enum NotificationChannel {
+        PUSH
+        EMAIL
+        SMS
+        IN_APP
+    }
+}
+
+' ========================================
+' ROOT PACKAGE
+' ========================================
+package com.notesapp {
+    class NotesApplication <<SpringBootApplication>> {
+        + {static} main(String[])
+    }
+}
+
+' ========================================
+' ENTITIES PACKAGE
+' ========================================
+package com.notesapp.entities {
+    class User <<Entity>> {
+        - userId: String {id}
+        - username: String
+        - email: String
+        - preferences: Map<String, String>
+        - createdAt: LocalDateTime
+        - notes: List<Note>
+        - tasks: List<TodoItem>
+
+        + User()
+        + User(...)
+        + authenticate()
+        + updatePreferences()
+        + onCreate()
+    }
+
+    class Note <<Entity>> {
+        - noteId: String {id}
+        - userId: String
+        - title: String
+        - body: String
+        - images: List<String>
+        - voiceRecording: String
+        - color: String
+        - category: String
+        - categoryId: String
+        - isPinned: Boolean
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        - user: User
+        - tags: Set<Tag>
+        - reminder: Reminder
+        - checklist: List<ChecklistItem>
+
+        + Note()
+        + create()
+        + update()
+        + delete()
+        + addTag()
+        + removeTag()
+        + autoOrganize()
+        + generateTasks()
+        + onCreate()
+        + onUpdate()
+    }
+
+    class Tag <<Entity>> {
+        - tagId: String {id}
+        - name: String
+        - color: String
+        - createdAt: LocalDateTime
+        - notes: Set<Note>
+
+        + Tag()
+        + Tag(...)
+        + attachToNote()
+        + detachFromNote()
+        + onCreate()
+    }
+
+    class Category <<Entity>> {
+        - categoryId: String {id}
+        - userId: String
+        - name: String
+        - description: String
+        - color: String
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+
+        + Category()
+        + Category(...)
+        + update()
+        + onCreate()
+        + onUpdate()
+    }
+
+    class TodoItem <<Entity>> {
+        - taskId: String {id}
+        - noteId: String
+        - title: String
+        - description: String
+        - status: TaskStatus
+        - priority: Priority
+        - dueDate: LocalDateTime
+        - createdAt: LocalDateTime
+        - completedAt: LocalDateTime
+        - user: User
+        - reminder: Reminder
+
+        + TodoItem()
+        + TodoItem(...)
+        + update()
+        + complete()
+        + updateStatus()
+        + delete()
+        + onCreate()
+    }
+
+    class ChecklistItem <<Entity>> {
+        - itemId: String {id}
+        - text: String
+        - isChecked: Boolean
+        - note: Note
+
+        + ChecklistItem()
+        + ChecklistItem(...)
+        + toggle()
+    }
+
+    class Reminder <<Entity>> {
+        - reminderId: String {id}
+        - entityId: String
+        - entityType: String
+        - scheduledTime: LocalDateTime
+        - channel: NotificationChannel
+        - message: String
+        - isDelivered: Boolean
+        - note: Note
+        - todoItem: TodoItem
+
+        + Reminder()
+        + Reminder(...)
+        + schedule()
+        + cancel()
+        + reschedule()
+        + deliver()
+    }
+}
+
+' ========================================
+' REPOSITORIES PACKAGE
+' ========================================
+package com.notesapp.repositories {
+    interface UserRepository <<Repository>> {
+        + findByUsername()
+        + findByEmail()
+        + existsByUsername()
+        + existsByEmail()
+    }
+
+    interface NoteRepository <<Repository>> {
+        + findByUserId()
+        + findByUserIdOrderByCreatedAtDesc()
+        + findByTags()
+        + findExistingTags()
+        + searchByText()
+        + findByDateRange()
+        + findByUserIdAndIsPinned()
+        + findByUserIdAndCategory()
+    }
+
+    interface TagRepository <<Repository>> {
+        + findByName()
+        + findByNameIgnoreCase()
+        + existsByName()
+    }
+
+    interface CategoryRepository <<Repository>> {
+        + findByUserId()
+        + findByUserIdAndName()
+        + findByUserIdAndCategoryId()
+        + existsByUserIdAndName()
+    }
+
+    interface TaskRepository <<Repository>> {
+        + findByNoteId()
+        + findByUserId()
+        + findByStatus()
+        + findByUserIdAndStatus()
+        + findByUserIdAndPriority()
+        + findByUserIdAndStatusAndPriorityIn()
+        + findDueTasks()
+        + deleteByNoteId()
+    }
+
+    interface ReminderRepository <<Repository>> {
+        + findPendingReminders()
+        + findByIsDelivered()
+        + findByEntityId()
+    }
+}
+
+' ========================================
+' SERVICES PACKAGE
+' ========================================
+package com.notesapp.services {
+    class AIOrganizer <<Service>> {
+        - tagRepository: TagRepository
+        - categoryRepository: CategoryRepository
+        - apiKey: String
+        - webClient: WebClient
+
+        + AIOrganizer()
+        + analyzeContent()
+        + suggestTags()
+        + suggestTagsFromUserCategories()
+        + categorize()
+        + categorizeWithUserCategories()
+        - extractKeywordTags()
+        - inferCategory()
+        - callOpenAI()
+        - parseTagsFromResponse()
+        - generateRandomColor()
+        - findBestMatchingCategory()
+    }
+
+    class TaskGenerator <<Service>> {
+        - taskRepository: TaskRepository
+        - apiKey: String
+        - webClient: WebClient
+
+        + TaskGenerator()
+        + extractActionItems()
+        + inferDueDate()
+        + inferPriority()
+        + generateTasks()
+        - extractActionItemsByPattern()
+        - parseActionItemsFromResponse()
+        - callOpenAI()
+    }
+
+    class SearchService <<Service, Singleton>> {
+        - noteRepository: NoteRepository
+
+        + SearchService(...)
+        + search()
+        + searchByText()
+        + filterByTags()
+        + filterByDateRange()
+        + combineFilters()
+    }
+
+    class NotificationScheduler <<Service>> {
+        - reminderRepository: ReminderRepository
+        - taskRepository: TaskRepository
+
+        + scheduleReminder()
+        + cancelReminder()
+        + deliverNotification()
+        + checkAndDeliverReminders()
+        + checkAndNotifyDueTasks()
+        + checkDueTasks()
+        - sendPushNotification(String)
+        - sendEmailNotification(String)
+        - sendSMSNotification(String)
+        - sendInAppNotification(String)
+    }
+}
+
+' ========================================
+' CONTROLLERS PACKAGE
+' ========================================
+package com.notesapp.controllers {
+    class NoteController <<RestController>> {
+        - noteRepository: NoteRepository
+        - userRepository: UserRepository
+        - aiOrganizer: AIOrganizer
+        - searchService: SearchService
+
+        + NoteController(...)
+        + getAllNotes()
+        + getNoteById()
+        + createNote()
+        + updateNote()
+        + deleteNote()
+        + searchNotes()
+    }
+
+    class TodoController <<RestController>> {
+        - taskRepository: TaskRepository
+        - userRepository: UserRepository
+        - noteRepository: NoteRepository
+        - taskGenerator: TaskGenerator
+        - notificationScheduler: NotificationScheduler
+
+        + TodoController(...)
+        + getAllTodos()
+        + getTodoById()
+        + createTodo()
+        + generateTasksFromNote()
+        + updateTodo()
+        + completeTodo()
+        + deleteTodo()
+        + getTodosByStatus()
+        + setReminder()
+    }
+
+    class UserController <<RestController>> {
+        - userRepository: UserRepository
+
+        + UserController(...)
+        + getAllUsers()
+        + registerUser()
+        + getUserById()
+        + getUserByUsername()
+        + updatePreferences()
+    }
+
+    class CategoryController <<RestController>> {
+        - categoryRepository: CategoryRepository
+
+        + CategoryController(...)
+        + getAllCategories()
+        + getCategoryById()
+        + createCategory()
+        + updateCategory()
+        + deleteCategory()
+    }
+}
+
+' ========================================
+' RELATIONSHIPS - ENTITY RELATIONSHIPS
+' ========================================
+User "1" -- "*" Note : has
+User "1" -- "*" TodoItem : has
+Note "*" -- "*" Tag : tagged with
+Note "1" -- "0..1" Reminder : has
+Note "1" -- "*" ChecklistItem : contains
+TodoItem "*" -- "1" User : belongs to
+TodoItem "1" -- "0..1" Reminder : has
+Reminder "1" -- "0..1" Note : for
+Reminder "1" -- "0..1" TodoItem : for
+ChecklistItem "*" -- "1" Note : belongs to
+
+' ========================================
+' RELATIONSHIPS - REPOSITORY EXTENDS
+' ========================================
+UserRepository ..|> JpaRepository
+NoteRepository ..|> JpaRepository
+TagRepository ..|> JpaRepository
+CategoryRepository ..|> JpaRepository
+TaskRepository ..|> JpaRepository
+ReminderRepository ..|> JpaRepository
+
+' ========================================
+' RELATIONSHIPS - SERVICE DEPENDENCIES
+' ========================================
+AIOrganizer --> TagRepository : uses
+AIOrganizer --> CategoryRepository : uses
+TaskGenerator --> TaskRepository : uses
+SearchService --> NoteRepository : uses
+NotificationScheduler --> ReminderRepository : uses
+NotificationScheduler --> TaskRepository : uses
+
+' ========================================
+' RELATIONSHIPS - CONTROLLER DEPENDENCIES
+' ========================================
+NoteController --> NoteRepository : uses
+NoteController --> UserRepository : uses
+NoteController --> AIOrganizer : uses
+NoteController --> SearchService : uses
+TodoController --> TaskRepository : uses
+TodoController --> UserRepository : uses
+TodoController --> NoteRepository : uses
+TodoController --> TaskGenerator : uses
+TodoController --> NotificationScheduler : uses
+UserController --> UserRepository : uses
+CategoryController --> CategoryRepository : uses
+
+' ========================================
+' RELATIONSHIPS - ENUM USAGE
+' ========================================
+TodoItem --> TaskStatus : uses
+TodoItem --> Priority : uses
+Reminder --> NotificationChannel : uses
+
+@enduml
