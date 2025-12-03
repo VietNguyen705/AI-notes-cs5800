@@ -1,0 +1,655 @@
+@startuml NotesApp-ClassDiagram-BeforeRefactoring
+
+' ========================================
+' NOTE: This diagram represents the codebase state BEFORE part 3 clean code refactoring (commit 56960a4)
+' At this point, AppConstants and OpenAIService did not exist yet.
+' AIOrganizer and TaskGenerator had embedded WebClient and OpenAI API logic.
+' ========================================
+
+' ========================================
+' ENUMS PACKAGE
+' ========================================
+package com.notesapp.enums {
+    enum TaskStatus {
+        PENDING
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+
+    enum Priority {
+        LOW
+        MEDIUM
+        HIGH
+        URGENT
+    }
+
+    enum NotificationChannel {
+        PUSH
+        EMAIL
+        SMS
+        IN_APP
+    }
+}
+
+' ========================================
+' ROOT PACKAGE
+' ========================================
+package com.notesapp {
+    class NotesApplication <<SpringBootApplication>> {
+        + {static} main(String[])
+    }
+}
+
+' ========================================
+' ENTITIES PACKAGE
+' ========================================
+package com.notesapp.entities {
+    class User <<Entity>> {
+        - userId: String {id}
+        - username: String
+        - email: String
+        - preferences: Map<String, String>
+        - createdAt: LocalDateTime
+        - notes: List<Note>
+        - tasks: List<TodoItem>
+
+        + User()
+        + User(...)
+        + authenticate()
+        + updatePreferences()
+        + onCreate()
+    }
+
+    class Note <<Entity>> {
+        - noteId: String {id}
+        - userId: String
+        - title: String
+        - body: String
+        - images: List<String>
+        - voiceRecording: String
+        - color: String
+        - category: String
+        - categoryId: String
+        - isPinned: Boolean
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        - user: User
+        - tags: Set<Tag>
+        - reminder: Reminder
+        - checklist: List<ChecklistItem>
+
+        + Note()
+        + create()
+        + update()
+        + delete()
+        + addTag()
+        + removeTag()
+        + autoOrganize()
+        + generateTasks()
+        + onCreate()
+        + onUpdate()
+    }
+
+    class Tag <<Entity>> {
+        - tagId: String {id}
+        - name: String
+        - color: String
+        - createdAt: LocalDateTime
+        - notes: Set<Note>
+
+        + Tag()
+        + Tag(...)
+        + attachToNote()
+        + detachFromNote()
+        + onCreate()
+    }
+
+    class Category <<Entity>> {
+        - categoryId: String {id}
+        - userId: String
+        - name: String
+        - description: String
+        - color: String
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+
+        + Category()
+        + Category(...)
+        + update()
+        + onCreate()
+        + onUpdate()
+    }
+
+    class TodoItem <<Entity>> {
+        - taskId: String {id}
+        - noteId: String
+        - title: String
+        - description: String
+        - status: TaskStatus
+        - priority: Priority
+        - dueDate: LocalDateTime
+        - createdAt: LocalDateTime
+        - completedAt: LocalDateTime
+        - user: User
+        - reminder: Reminder
+
+        + TodoItem()
+        + TodoItem(...)
+        + update()
+        + complete()
+        + updateStatus()
+        + delete()
+        + onCreate()
+    }
+
+    class ChecklistItem <<Entity>> {
+        - itemId: String {id}
+        - text: String
+        - isChecked: Boolean
+        - note: Note
+
+        + ChecklistItem()
+        + ChecklistItem(...)
+        + toggle()
+    }
+
+    class Reminder <<Entity>> {
+        - reminderId: String {id}
+        - entityId: String
+        - entityType: String
+        - scheduledTime: LocalDateTime
+        - channel: NotificationChannel
+        - message: String
+        - isDelivered: Boolean
+        - note: Note
+        - todoItem: TodoItem
+
+        + Reminder()
+        + Reminder(...)
+        + schedule()
+        + cancel()
+        + reschedule()
+        + deliver()
+    }
+}
+
+' ========================================
+' REPOSITORIES PACKAGE
+' ========================================
+package com.notesapp.repositories {
+    interface UserRepository <<Repository>> {
+        + findByUsername()
+        + findByEmail()
+        + existsByUsername()
+        + existsByEmail()
+    }
+
+    interface NoteRepository <<Repository>> {
+        + findByUserId()
+        + findByUserIdOrderByCreatedAtDesc()
+        + findByTags()
+        + findExistingTags()
+        + searchByText()
+        + findByDateRange()
+        + findByUserIdAndIsPinned()
+        + findByUserIdAndCategory()
+    }
+
+    interface TagRepository <<Repository>> {
+        + findByName()
+        + findByNameIgnoreCase()
+        + existsByName()
+    }
+
+    interface CategoryRepository <<Repository>> {
+        + findByUserId()
+        + findByUserIdAndName()
+        + findByUserIdAndCategoryId()
+        + existsByUserIdAndName()
+    }
+
+    interface TaskRepository <<Repository>> {
+        + findByNoteId()
+        + findByUserId()
+        + findByStatus()
+        + findByUserIdAndStatus()
+        + findByUserIdAndPriority()
+        + findByUserIdAndStatusAndPriorityIn()
+        + findDueTasks()
+        + deleteByNoteId()
+    }
+
+    interface ReminderRepository <<Repository>> {
+        + findPendingReminders()
+        + findByIsDelivered()
+        + findByEntityId()
+    }
+}
+
+' ========================================
+' DECORATORS PACKAGE
+' ========================================
+package com.notesapp.decorators {
+    interface NoteEnrichment {
+        + enrich()
+    }
+
+    class BaseNoteEnrichment {
+        # note: Note
+
+        + BaseNoteEnrichment(...)
+        + enrich()
+    }
+
+    class TagEnrichmentDecorator {
+        - aiOrganizer: AIOrganizer
+        - userId: String
+
+        + TagEnrichmentDecorator(...)
+        + enrich()
+    }
+
+    class CategoryEnrichmentDecorator {
+        - aiOrganizer: AIOrganizer
+        - userId: String
+
+        + CategoryEnrichmentDecorator(...)
+        + enrich()
+    }
+
+    class SentimentEnrichmentDecorator {
+        - {static} POSITIVE_KEYWORDS: List<String>
+        - {static} NEGATIVE_KEYWORDS: List<String>
+
+        + SentimentEnrichmentDecorator(...)
+        + enrich()
+    }
+}
+
+' ========================================
+' OBSERVERS PACKAGE
+' ========================================
+package com.notesapp.observers {
+    interface NoteObserver {
+        + update(Note, String)
+    }
+
+    class AnalyticsObserver <<Component, Singleton>> {
+        - eventCounts: Map<String, Integer>
+        - formatter: DateTimeFormatter
+
+        + AnalyticsObserver()
+        + update(Note, String)
+        + trackEvent(String)
+        + logAnalytics()
+        + getEventCounts()
+    }
+
+    class NotificationObserver <<Component, Singleton>> {
+        + NotificationObserver()
+        + update(Note, String)
+        - sendCreationNotification(Note)
+        - sendUpdateNotification(Note)
+    }
+
+    class SearchIndexObserver <<Component, Singleton>> {
+        + SearchIndexObserver()
+        + update(Note, String)
+        - indexNote(Note)
+        - reindexNote(Note)
+        - removeFromIndex(Note)
+    }
+}
+
+' ========================================
+' FACTORIES PACKAGE
+' ========================================
+package com.notesapp.factories {
+    class NotificationChannelFactory <<Component, Singleton>> {
+        + NotificationChannelFactory()
+        + createChannel(NotificationChannel)
+        + createChannelByName(String)
+    }
+
+    class TodoFactory <<Component, Singleton>> {
+        + TodoFactory()
+        + createTodo(User, String)
+        + createTodoWithPriority(User, String, Priority)
+        + createTodoWithDueDate(User, String, LocalDateTime)
+        + createUrgentTodo(User, String)
+        + createFullTodo(User, String, String, Priority, TaskStatus, LocalDateTime, String)
+        + createTodoFromNote(User, String, String)
+    }
+}
+
+' ========================================
+' MEDIATOR PACKAGE
+' ========================================
+package com.notesapp.mediator {
+    interface NotificationChannel {
+        + send()
+        + getType()
+    }
+
+    class NotificationMediator <<Component, Singleton>> {
+        - channels: Map<NotificationChannel, NotificationChannel>
+
+        + NotificationMediator()
+        + registerChannel()
+        + sendNotification()
+        + broadcast()
+        - formatMessage()
+        + getChannelCount()
+    }
+
+    class EmailNotificationChannel <<Component, Singleton>> {
+        + send()
+        + getType()
+    }
+
+    class PushNotificationChannel <<Component, Singleton>> {
+        + send()
+        + getType()
+    }
+
+    class SMSNotificationChannel <<Component, Singleton>> {
+        + send()
+        + getType()
+    }
+
+    class InAppNotificationChannel <<Component, Singleton>> {
+        + send()
+        + getType()
+    }
+}
+
+' ========================================
+' SERVICES PACKAGE
+' ========================================
+package com.notesapp.services {
+    class AIOrganizer <<Service, Singleton>> {
+        - tagRepository: TagRepository
+        - categoryRepository: CategoryRepository
+        - apiKey: String
+        - webClient: WebClient
+
+        + AIOrganizer(...)
+        + analyzeContent()
+        + suggestTags()
+        + suggestTagsFromUserCategories()
+        + categorize()
+        + categorizeWithUserCategories()
+        - extractKeywordTags()
+        - inferCategory()
+        - callOpenAI()
+        - parseTagsFromResponse()
+        - generateRandomColor()
+        - findBestMatchingCategory()
+    }
+
+    class TaskGenerator <<Service, Singleton>> {
+        - taskRepository: TaskRepository
+        - apiKey: String
+        - webClient: WebClient
+
+        + TaskGenerator(...)
+        + extractActionItems()
+        + inferDueDate()
+        + inferPriority()
+        + generateTasks()
+        - extractActionItemsByPattern()
+        - parseActionItemsFromResponse()
+        - callOpenAI()
+    }
+
+    class SearchService <<Service, Singleton>> {
+        - noteRepository: NoteRepository
+
+        + SearchService(...)
+        + search()
+        + searchByText()
+        + filterByTags()
+        + filterByDateRange()
+        + combineFilters()
+    }
+
+    class NotificationScheduler <<Service, Singleton>> {
+        - reminderRepository: ReminderRepository
+        - taskRepository: TaskRepository
+        - mediator: NotificationMediator
+        - emailChannel: EmailNotificationChannel
+        - pushChannel: PushNotificationChannel
+        - smsChannel: SMSNotificationChannel
+        - inAppChannel: InAppNotificationChannel
+
+        + NotificationScheduler()
+        + initialize()
+        + scheduleReminder()
+        + cancelReminder()
+        + deliverNotification()
+        + checkAndDeliverReminders()
+        + checkAndNotifyDueTasks()
+        + checkDueTasks()
+    }
+
+    class FileStorageService <<Service, Singleton>> {
+        - uploadDir: Path
+
+        + FileStorageService()
+        + storeFile()
+        + loadFile()
+        + deleteFile()
+        + getContentType()
+    }
+
+    class PDFExportService <<Service, Singleton>> {
+        - noteRepository: NoteRepository
+        - taskRepository: TaskRepository
+
+        + PDFExportService(...)
+        + exportNoteToPDF()
+        + exportMultipleNotesToPDF()
+    }
+}
+
+' ========================================
+' CONTROLLERS PACKAGE
+' ========================================
+package com.notesapp.controllers {
+    class NoteController <<RestController>> {
+        - noteRepository: NoteRepository
+        - userRepository: UserRepository
+        - aiOrganizer: AIOrganizer
+        - searchService: SearchService
+        - observers: List<NoteObserver>
+
+        + NoteController(...)
+        + getAllNotes()
+        + getNoteById()
+        + createNote()
+        + updateNote()
+        + deleteNote()
+        + autoOrganize()
+        + searchNotes()
+        + registerObserver()
+        + removeObserver()
+    }
+
+    class TodoController <<RestController>> {
+        - taskRepository: TaskRepository
+        - userRepository: UserRepository
+        - noteRepository: NoteRepository
+        - taskGenerator: TaskGenerator
+        - notificationScheduler: NotificationScheduler
+
+        + TodoController(...)
+        + getAllTodos()
+        + getTodoById()
+        + createTodo()
+        + generateTasksFromNote()
+        + updateTodo()
+        + completeTodo()
+        + deleteTodo()
+        + getTodosByStatus()
+        + setReminder()
+    }
+
+    class UserController <<RestController>> {
+        - userRepository: UserRepository
+
+        + UserController(...)
+        + getAllUsers()
+        + registerUser()
+        + getUserById()
+        + getUserByUsername()
+        + updatePreferences()
+    }
+
+    class CategoryController <<RestController>> {
+        - categoryRepository: CategoryRepository
+
+        + CategoryController(...)
+        + getAllCategories()
+        + getCategoryById()
+        + createCategory()
+        + updateCategory()
+        + deleteCategory()
+    }
+
+    class ExportController <<RestController>> {
+        - pdfExportService: PDFExportService
+        - noteRepository: NoteRepository
+
+        + ExportController(...)
+        + exportNoteToPDF()
+        + exportMultipleNotesToPDF()
+        + exportAllUserNotesToPDF()
+    }
+
+    class MediaController <<RestController>> {
+        - fileStorageService: FileStorageService
+        - noteRepository: NoteRepository
+
+        + MediaController(...)
+        + uploadImage()
+        + uploadAudio()
+        + getImage()
+        + getAudio()
+        + deleteImage()
+        + deleteAudio()
+    }
+}
+
+' ========================================
+' RELATIONSHIPS - ENTITY RELATIONSHIPS
+' ========================================
+User "1" -- "*" Note : has
+User "1" -- "*" TodoItem : has
+Note "*" -- "*" Tag : tagged with
+Note "1" -- "0..1" Reminder : has
+Note "1" -- "*" ChecklistItem : contains
+TodoItem "*" -- "1" User : belongs to
+TodoItem "1" -- "0..1" Reminder : has
+Reminder "1" -- "0..1" Note : for
+Reminder "1" -- "0..1" TodoItem : for
+ChecklistItem "*" -- "1" Note : belongs to
+
+' ========================================
+' RELATIONSHIPS - REPOSITORY EXTENDS
+' ========================================
+UserRepository ..|> JpaRepository
+NoteRepository ..|> JpaRepository
+TagRepository ..|> JpaRepository
+CategoryRepository ..|> JpaRepository
+TaskRepository ..|> JpaRepository
+ReminderRepository ..|> JpaRepository
+
+' ========================================
+' RELATIONSHIPS - DECORATOR PATTERN
+' ========================================
+NoteEnrichment <|.. BaseNoteEnrichment : implements
+BaseNoteEnrichment <|-- TagEnrichmentDecorator : extends
+BaseNoteEnrichment <|-- CategoryEnrichmentDecorator : extends
+BaseNoteEnrichment <|-- SentimentEnrichmentDecorator : extends
+BaseNoteEnrichment o-- Note : wraps
+
+' ========================================
+' RELATIONSHIPS - OBSERVER PATTERN
+' ========================================
+NoteObserver <|.. AnalyticsObserver : implements
+NoteObserver <|.. NotificationObserver : implements
+NoteObserver <|.. SearchIndexObserver : implements
+NoteController o-- NoteObserver : manages
+
+' ========================================
+' RELATIONSHIPS - FACTORY PATTERN
+' ========================================
+NotificationChannelFactory ..> NotificationChannel : creates
+NotificationChannelFactory ..> EmailNotificationChannel : creates
+NotificationChannelFactory ..> PushNotificationChannel : creates
+NotificationChannelFactory ..> SMSNotificationChannel : creates
+NotificationChannelFactory ..> InAppNotificationChannel : creates
+TodoFactory ..> TodoItem : creates
+
+' ========================================
+' RELATIONSHIPS - MEDIATOR PATTERN
+' ========================================
+NotificationChannel <|.. EmailNotificationChannel : implements
+NotificationChannel <|.. PushNotificationChannel : implements
+NotificationChannel <|.. SMSNotificationChannel : implements
+NotificationChannel <|.. InAppNotificationChannel : implements
+NotificationMediator o-- NotificationChannel : manages
+
+' ========================================
+' RELATIONSHIPS - SERVICE DEPENDENCIES
+' ========================================
+AIOrganizer --> TagRepository : uses
+AIOrganizer --> CategoryRepository : uses
+TaskGenerator --> TaskRepository : uses
+SearchService --> NoteRepository : uses
+NotificationScheduler --> ReminderRepository : uses
+NotificationScheduler --> TaskRepository : uses
+NotificationScheduler --> NotificationMediator : uses
+NotificationScheduler --> EmailNotificationChannel : uses
+NotificationScheduler --> PushNotificationChannel : uses
+NotificationScheduler --> SMSNotificationChannel : uses
+NotificationScheduler --> InAppNotificationChannel : uses
+PDFExportService --> NoteRepository : uses
+PDFExportService --> TaskRepository : uses
+NotificationScheduler --> NotificationChannelFactory : uses
+
+' ========================================
+' RELATIONSHIPS - CONTROLLER DEPENDENCIES
+' ========================================
+NoteController --> NoteRepository : uses
+NoteController --> UserRepository : uses
+NoteController --> AIOrganizer : uses
+NoteController --> SearchService : uses
+TodoController --> TaskRepository : uses
+TodoController --> UserRepository : uses
+TodoController --> NoteRepository : uses
+TodoController --> TaskGenerator : uses
+TodoController --> NotificationScheduler : uses
+TodoController --> TodoFactory : uses
+UserController --> UserRepository : uses
+CategoryController --> CategoryRepository : uses
+ExportController --> PDFExportService : uses
+ExportController --> NoteRepository : uses
+MediaController --> FileStorageService : uses
+MediaController --> NoteRepository : uses
+
+' ========================================
+' RELATIONSHIPS - DECORATOR USAGE
+' ========================================
+TagEnrichmentDecorator --> AIOrganizer : uses
+CategoryEnrichmentDecorator --> AIOrganizer : uses
+
+' ========================================
+' RELATIONSHIPS - ENUM USAGE
+' ========================================
+TodoItem --> TaskStatus : uses
+TodoItem --> Priority : uses
+Reminder --> NotificationChannel : uses
+
+@enduml
